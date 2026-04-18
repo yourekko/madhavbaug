@@ -1,0 +1,78 @@
+.answer-html {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #1e293b;
+}
+
+.answer-html p {
+  margin: 0 0 0.75em;
+}
+
+.answer-html p:last-child {
+  margin-bottom: 0;
+}
+
+.answer-html h1,
+.answer-html h2,
+.answer-html h3 {
+  margin: 0.6em 0 0.35em;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.answer-html h1 {
+  font-size: 1.35rem;
+}
+.answer-html h2 {
+  font-size: 1.2rem;
+}
+.answer-html h3 {
+  font-size: 1.05rem;
+}
+
+.answer-html ul,
+.answer-html ol {
+  margin: 0 0 0.75em 1.25em;
+  padding: 0;
+}
+
+.answer-html li {
+  margin-bottom: 0.25em;
+}
+
+.answer-html blockquote {
+  margin: 0.5em 0;
+  padding: 0.5em 0 0.5em 1em;
+  border-left: 4px solid var(--brand-blue);
+  color: #475569;
+}
+
+.answer-html pre,
+.answer-html code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.answer-html pre {
+  margin: 0.5em 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  overflow-x: auto;
+}
+
+.answer-html a {
+  color: var(--brand-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.answer-html img,
+.answer-html .answer-inline-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin: 0.5em 0;
+  display: block;
+}

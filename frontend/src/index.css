@@ -1,0 +1,48 @@
+:root {
+  /* Madhavbaug brand (logo + Figma-aligned palette) */
+  --brand-red: #991731;
+  --brand-blue: #016589;
+  --brand-blue-dark: #014a63;
+  --brand-red-dark: #7d1228;
+  --brand-mist: #e8f1f5;
+  --brand-mist-2: #f0f6f9;
+  --brand-warm-bg: #f5f7fa;
+
+  --color-primary: var(--brand-blue);
+  --color-primary-dark: var(--brand-blue-dark);
+  --color-accent: var(--brand-red);
+
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--brand-warm-bg);
+}
+
+#root {
+  width: 100%;
+}

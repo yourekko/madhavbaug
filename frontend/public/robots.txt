@@ -1,0 +1,5 @@
+# Update `Sitemap:` URL to your production domain (same as VITE_SITE_URL).
+User-agent: *
+Allow: /
+
+Sitemap: https://www.madhavbaug.com/sitemap.xml
