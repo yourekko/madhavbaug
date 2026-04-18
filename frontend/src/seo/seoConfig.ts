@@ -19,8 +19,6 @@ export const seoConfig = {
   },
   defaultDescription:
     'Ask health questions and get medically verified answers from doctors. Ayurvedic cardiac care, diabetes, heart health, hypertension, and lifestyle guidance.',
-  /** Used for og:image and twitter — place a 1200×630 asset in /public when ready */
-  defaultOgImagePath: '/favicon.svg',
   /** Twitter @handle — leave empty string to omit meta tag */
   twitterSite: '',
 } as const;

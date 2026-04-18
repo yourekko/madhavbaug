@@ -15,7 +15,10 @@ export function Seo({ title, description, canonicalPath, noindex, ogType = 'webs
   const titleTag = title.includes('|') ? title.trim() : formatPageTitle(title.trim());
   const desc = (description ?? seoConfig.defaultDescription).trim();
   const canonical = absoluteUrl(canonicalPath);
-  const ogImage = absoluteUrl(seoConfig.defaultOgImagePath);
+  const ogImage = new URL(
+    'favicon.svg',
+    `${seoConfig.siteUrl.replace(/\/$/, '')}${import.meta.env.BASE_URL}`,
+  ).href;
 
   return (
     <Helmet>
