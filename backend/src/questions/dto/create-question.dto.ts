@@ -8,7 +8,7 @@ export class CreateQuestionDto {
   title!: string;
 
   @IsString()
-  @MinLength(50)
+  @MinLength(20)
   @MaxLength(2000)
   body!: string;
 

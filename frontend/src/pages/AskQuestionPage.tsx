@@ -62,7 +62,7 @@ const faqItems = [
 ];
 
 const MAX_Q = 2000;
-const MIN_Q = 50;
+const MIN_Q = 20;
 
 type AskLocationState = { draftQuestion?: string };
 
