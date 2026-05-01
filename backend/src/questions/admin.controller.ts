@@ -40,7 +40,6 @@ export class AdminController {
     return this.questionsService.adminAssignDoctor(id, dto.doctorUserId, user.sub);
   }
 
-  @Roles(Role.SUPERADMIN)
   @Delete('questions/:id')
   deleteQuestion(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.questionsService.adminDeleteQuestion(id, user.sub);

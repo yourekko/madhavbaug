@@ -293,7 +293,7 @@ export default function AdminPanelPage() {
   }
 
   async function deleteQuestion(q: AdminQuestion) {
-    if (!token || user?.role !== 'superadmin') return;
+    if (!token || (user?.role !== 'superadmin' && user?.role !== 'admin')) return;
     const previewSource = q.body?.trim() || q.title;
     const preview = previewSource.length > 160 ? `${previewSource.slice(0, 160)}…` : previewSource;
     if (!window.confirm(`Permanently delete this question from the database?\n\n${preview}`)) return;
@@ -903,7 +903,7 @@ export default function AdminPanelPage() {
                       <th>Category</th>
                       <th>Status</th>
                       <th>Assign</th>
-                      {user?.role === 'superadmin' ? <th>Actions</th> : null}
+                      {user?.role === 'superadmin' || user?.role === 'admin' ? <th>Actions</th> : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -934,7 +934,7 @@ export default function AdminPanelPage() {
                             ))}
                           </select>
                         </td>
-                        {user?.role === 'superadmin' ? (
+                        {user?.role === 'superadmin' || user?.role === 'admin' ? (
                           <td>
                             <button
                               type="button"
