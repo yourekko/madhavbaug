@@ -335,6 +335,17 @@ export class QuestionsService implements OnModuleInit {
     return { ok: true };
   }
 
+  async adminDeleteQuestion(questionId: string, superadminUserId: string) {
+    const question = await this.questionRepo.findOne({ where: { id: questionId } });
+    if (!question) throw new NotFoundException('Question not found.');
+    await this.questionRepo.delete({ id: questionId });
+    await this.log(superadminUserId, 'question.delete', 'question', questionId, {
+      category: question.category,
+      forumSlug: question.forumSlug,
+    });
+    return { ok: true };
+  }
+
   async adminDashboard() {
     const statusRows = await this.questionRepo
       .createQueryBuilder('q')
@@ -600,6 +611,7 @@ export class QuestionsService implements OnModuleInit {
           categorySlug: this.forumSlugForCategory(q.category),
           questionSlug: q.forumSlug,
           title: q.title,
+          body: q.body,
           excerpt: this.snippetText(q.body),
           views: q.viewCount ?? 0,
           answers: answerCount,
@@ -617,6 +629,7 @@ export class QuestionsService implements OnModuleInit {
           categorySlug: this.forumSlugForCategory(q.category),
           questionSlug: q.forumSlug,
           title: q.title,
+          body: q.body,
           excerpt: this.snippetText(q.body),
           views: q.viewCount ?? 0,
           answeredAt: latestAnswer?.createdAt ?? q.createdAt,
@@ -724,6 +737,7 @@ export class QuestionsService implements OnModuleInit {
       return {
         slug: q.forumSlug as string,
         title: q.title,
+        body: q.body,
         snippet: this.snippetText(q.body),
         category: q.category,
         tag: q.category,

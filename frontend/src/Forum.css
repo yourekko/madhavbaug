@@ -267,6 +267,12 @@
   margin-bottom: 10px;
 }
 
+.forum-q-title--full {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 16px;
+}
+
 .forum-q-title:hover {
   color: var(--forum-teal);
 }
@@ -680,6 +686,11 @@
   font-weight: 800;
   color: var(--forum-forest);
   line-height: 1.25;
+}
+
+.forum-detail-title--body {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .forum-patient-profile {

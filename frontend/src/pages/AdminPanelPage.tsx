@@ -52,6 +52,7 @@ type AdminDashboard = {
 type AdminQuestion = {
   id: string;
   title: string;
+  body?: string;
   status: string;
   category: string;
   patientUserId: string;
@@ -289,6 +290,20 @@ export default function AdminPanelPage() {
       body: JSON.stringify({ doctorUserId }),
     }, token);
     await loadAll();
+  }
+
+  async function deleteQuestion(q: AdminQuestion) {
+    if (!token || user?.role !== 'superadmin') return;
+    const previewSource = q.body?.trim() || q.title;
+    const preview = previewSource.length > 160 ? `${previewSource.slice(0, 160)}…` : previewSource;
+    if (!window.confirm(`Permanently delete this question from the database?\n\n${preview}`)) return;
+    try {
+      setError(null);
+      await apiRequest<{ ok: boolean }>(`/admin/questions/${q.id}`, { method: 'DELETE' }, token);
+      await loadAll();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete question.');
+    }
   }
 
   async function saveSeo() {
@@ -888,12 +903,13 @@ export default function AdminPanelPage() {
                       <th>Category</th>
                       <th>Status</th>
                       <th>Assign</th>
+                      {user?.role === 'superadmin' ? <th>Actions</th> : null}
                     </tr>
                   </thead>
                   <tbody>
                     {questions.map((q) => (
                       <tr key={q.id}>
-                        <td className="admin-td-strong">{q.title}</td>
+                        <td className="admin-td-strong admin-td-question">{q.body ?? q.title}</td>
                         <td>{q.category}</td>
                         <td>
                           <span className={statusBadgeClass(q.status)}>{q.status}</span>
@@ -902,7 +918,7 @@ export default function AdminPanelPage() {
                           <select
                             className="admin-select"
                             defaultValue=""
-                            aria-label={`Assign doctor for ${q.title}`}
+                            aria-label={`Assign doctor for ${(q.body ?? q.title).slice(0, 120)}`}
                             onChange={(e) => {
                               if (e.target.value) {
                                 assignDoctor(q.id, e.target.value).catch(() => undefined);
@@ -918,6 +934,17 @@ export default function AdminPanelPage() {
                             ))}
                           </select>
                         </td>
+                        {user?.role === 'superadmin' ? (
+                          <td>
+                            <button
+                              type="button"
+                              className="admin-btn-danger"
+                              onClick={() => deleteQuestion(q).catch(() => undefined)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        ) : null}
                       </tr>
                     ))}
                   </tbody>

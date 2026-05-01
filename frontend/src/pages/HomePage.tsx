@@ -44,6 +44,8 @@ type TrendItem = {
   category: string;
   status: 'answered' | 'pending';
   title: string;
+  /** Full question copy (preferred for display). */
+  body: string;
   excerpt: string;
   views: number;
   answers: number;
@@ -59,6 +61,7 @@ const FALLBACK_TRENDING: TrendItem[] = [
     category: 'Diabetes',
     status: 'answered',
     title: 'Can Ayurveda cure Type 2 Diabetes completely?',
+    body: 'I am 45 years old with Type 2 Diabetes for the past 3 years. Can I switch to Ayurvedic treatment and achieve complete cure?',
     excerpt:
       'I am 45 years old with Type 2 Diabetes for the past 3 years. Can I switch to Ayurvedic treatment and achieve complete cure?',
     views: 2847,
@@ -71,6 +74,7 @@ const FALLBACK_TRENDING: TrendItem[] = [
     category: 'Blood Pressure',
     status: 'answered',
     title: 'What lifestyle changes help reduce high blood pressure naturally?',
+    body: 'My BP readings are 150/95. Doctor suggested medication but I want to try natural methods first.',
     excerpt:
       'My BP readings are 150/95. Doctor suggested medication but I want to try natural methods first.',
     views: 1923,
@@ -83,6 +87,7 @@ const FALLBACK_TRENDING: TrendItem[] = [
     category: 'Weight Management',
     status: 'answered',
     title: 'Best Ayurvedic herbs for weight loss and metabolism boost?',
+    body: 'I am overweight with slow metabolism. Which Ayurvedic herbs are scientifically proven to help with weight management and are safe for long-term use?',
     excerpt:
       'I am overweight with slow metabolism. Which Ayurvedic herbs are scientifically proven to help with weight management and are safe for long-term use?',
     views: 1654,
@@ -95,6 +100,7 @@ const FALLBACK_TRENDING: TrendItem[] = [
     category: 'Heart Health',
     status: 'pending',
     title: 'Can Ayurveda help with high cholesterol levels?',
+    body: 'My cholesterol is 240 mg/dL. Are there effective Ayurvedic treatments to lower cholesterol without side effects?',
     excerpt:
       'My cholesterol is 240 mg/dL. Are there effective Ayurvedic treatments to lower cholesterol without side effects?',
     views: 892,
@@ -111,6 +117,7 @@ const FALLBACK_RECENT: RecentItem[] = [
     categorySlug: 'diabetes-management',
     questionSlug: null,
     title: 'Is fasting beneficial for diabetes management?',
+    body: 'Is intermittent fasting safe and beneficial for managing Type 2 diabetes, and what precautions should I take?',
     excerpt:
       'Intermittent fasting can help improve insulin sensitivity when done correctly under medical supervision. Treatment effectiveness varies depending on age, lifestyle, and medical reports...',
     views: 456,
@@ -123,6 +130,7 @@ const FALLBACK_RECENT: RecentItem[] = [
     categorySlug: 'obesity-metabolic-health',
     questionSlug: null,
     title: 'Which yoga asanas are best for weight loss?',
+    body: 'Which yoga asanas are most effective for weight loss when combined with Ayurvedic diet, and how often should they be practiced?',
     excerpt:
       'Surya Namaskar, Dhanurasana, and Bhujangasana are effective for metabolism boost. Personalized assessment is recommended before starting any treatment...',
     views: 328,
@@ -135,6 +143,7 @@ const FALLBACK_RECENT: RecentItem[] = [
     categorySlug: 'hypertension-high-blood-pressure',
     questionSlug: null,
     title: 'Can stress cause high blood pressure?',
+    body: 'Can chronic work stress alone cause sustained high blood pressure, and what Ayurvedic approaches help manage stress-related hypertension?',
     excerpt:
       'Chronic stress significantly impacts cardiovascular health and can elevate blood pressure. Ayurvedic stress management through meditation and pranayama shows effectiveness...',
     views: 612,
@@ -147,6 +156,7 @@ const FALLBACK_RECENT: RecentItem[] = [
     categorySlug: 'heart-disease-heart-blockage',
     questionSlug: null,
     title: 'What is the ideal diet for heart patients?',
+    body: 'What is an ideal Ayurvedic diet pattern for someone recovering from mild heart blockage, including foods to emphasize and avoid?',
     excerpt:
       'Heart-healthy diet in Ayurveda focuses on light, easily digestible foods with minimal salt and saturated fats. Individual health conditions must be evaluated...',
     views: 789,
@@ -224,6 +234,7 @@ export default function HomePage() {
       category: item.category,
       status: item.status,
       title: item.title,
+      body: item.body ?? item.excerpt,
       excerpt: item.excerpt,
       views: item.views,
       answers: item.answers,
@@ -441,8 +452,7 @@ export default function HomePage() {
                     <span className="status pending">Pending Answer</span>
                   )}
                 </div>
-                <h4>{item.title}</h4>
-                <p>{item.excerpt}</p>
+                <h4 className="trend-q-body">{item.body || item.title}</h4>
                 <div className="trend-bottom">
                   <span className="trend-stats">
                     <FaEye aria-hidden /> {item.views.toLocaleString()} views
@@ -511,8 +521,7 @@ export default function HomePage() {
                   </div>
                   <span className="verified">Verified</span>
                 </div>
-                <h4>{r.title}</h4>
-                <p>{r.excerpt}</p>
+                <h4 className="trend-q-body">{r.body ?? r.title}</h4>
                 <div className="recent-bottom">
                   <span>
                     {r.category} • <FaEye /> {r.views.toLocaleString()}

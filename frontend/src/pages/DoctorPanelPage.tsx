@@ -241,7 +241,7 @@ export default function DoctorPanelPage() {
                   className={`dp-thread-btn ${selected?.id === q.id ? 'is-active' : ''}`}
                   onClick={() => setSelected(q)}
                 >
-                  <h3>{q.title}</h3>
+                  <h3>{q.body}</h3>
                   <div className="dp-thread-meta">
                     <span>{q.category}</span>
                     <span aria-hidden>·</span>
@@ -269,8 +269,7 @@ export default function DoctorPanelPage() {
               <div className="dp-loading">Loading question…</div>
             ) : thread ? (
               <>
-                <h2 className="dp-question-title">{thread.title}</h2>
-                <p className="dp-question-body">{thread.body}</p>
+                <h2 className="dp-question-title">{thread.body}</h2>
                 <p style={{ margin: '0 0 20px', fontSize: 13, color: '#94a3b8' }}>
                   Submitted {new Date(thread.createdAt).toLocaleString()}
                 </p>

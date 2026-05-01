@@ -703,6 +703,12 @@ nav button:hover,
   gap:12px;
 }
 .trend-card h4 { margin:12px 0 8px; font-size:16px; line-height:1.35; }
+.trend-card h4.trend-q-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #111827;
+  font-weight: 700;
+}
 .trend-card p { margin:0; color:#6b7280; font-size:15px; line-height:1.5; }
 .trend-bottom { margin-top:12px; border-top:1px solid #eceff3; padding-top:12px; display:flex; justify-content:space-between; align-items:center; color:#4b5563; font-size:14px; }
 .trend-bottom span { display:flex; align-items:center; gap:8px; }
@@ -763,6 +769,12 @@ a.answer-btn-link:hover {
 .recent-top p{ margin:0; font-size:13px; color:#6b7280; }
 .verified{ margin-left:auto; color:var(--brand-blue); font-size:13px; font-weight:600; }
 .recent-card h4{ margin:12px 0 8px; font-size:16px; line-height:1.35; }
+.recent-card h4.trend-q-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #111827;
+  font-weight: 700;
+}
 .recent-card p{ color:#4b5563; margin:0; font-size:15px; }
 .recent-bottom{ border-top:1px solid #e9edf2; margin-top:auto; padding-top:10px; display:flex; justify-content:space-between; font-size:14px; color:#6b7280; }
 .recent-bottom a{ color:var(--brand-blue); text-decoration:none; font-weight:600; }

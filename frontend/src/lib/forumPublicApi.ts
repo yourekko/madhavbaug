@@ -23,6 +23,8 @@ export type HomeFeedResponse = {
     categorySlug: string | null;
     questionSlug: string | null;
     title: string;
+    /** Full patient question (use for display; `title` may be a shorter stored heading). */
+    body?: string;
     excerpt: string;
     views: number;
     answers: number;
@@ -35,6 +37,7 @@ export type HomeFeedResponse = {
     categorySlug: string | null;
     questionSlug: string | null;
     title: string;
+    body?: string;
     excerpt: string;
     views: number;
     answeredAt: string;
@@ -48,6 +51,8 @@ export type HomeFeedResponse = {
 export type ForumListItem = {
   slug: string;
   title: string;
+  /** Full question text for list cards. */
+  body?: string;
   snippet: string;
   category: string;
   tag: string;

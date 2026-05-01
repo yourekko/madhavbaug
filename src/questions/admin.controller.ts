@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -38,6 +38,12 @@ export class AdminController {
   @Post('questions/:id/assign-doctor')
   assignDoctor(@Param('id') id: string, @Body() dto: AssignDoctorDto, @CurrentUser() user: JwtPayload) {
     return this.questionsService.adminAssignDoctor(id, dto.doctorUserId, user.sub);
+  }
+
+  @Roles(Role.SUPERADMIN)
+  @Delete('questions/:id')
+  deleteQuestion(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.questionsService.adminDeleteQuestion(id, user.sub);
   }
 
   @Get('doctors')

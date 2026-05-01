@@ -22,13 +22,6 @@ function truncateMeta(text: string, max: number) {
   return `${t.slice(0, Math.max(0, max - 1))}…`;
 }
 
-function splitPatientBody(body: string): string[] {
-  return body
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-}
-
 const EDU_DISCLAIMER =
   'This information is educational and not a substitute for an in-person consultation. For emergencies, contact local emergency services immediately.';
 
@@ -125,7 +118,7 @@ export function ForumQuestionDetailPage() {
 
   const onToggleSave = useCallback(() => {
     if (!detail || !slugValid) return;
-    const nowSaved = toggleForumSaved(slug, detail.slug, detail.title);
+    const nowSaved = toggleForumSaved(slug, detail.slug, detail.body);
     setSaved(nowSaved);
     toast.success(
       nowSaved
@@ -137,7 +130,7 @@ export function ForumQuestionDetailPage() {
   const onShare = useCallback(() => {
     if (!detail || !slugValid) return;
     const url = typeof window !== 'undefined' ? window.location.href : '';
-    shareDiscussionPage(detail.title, url, toast).catch(() => {});
+    shareDiscussionPage(detail.body, url, toast).catch(() => {});
   }, [detail, slugValid, toast]);
 
   const onSubmitReport = useCallback(
@@ -200,10 +193,9 @@ export function ForumQuestionDetailPage() {
     );
   }
 
-  const titleSeg = truncateMeta(detail.title, 72);
+  const titleSeg = truncateMeta(detail.body, 72);
   const descSeg = truncateMeta(detail.body, 160);
-  const patientParas = splitPatientBody(detail.body);
-  const breadcrumbLeaf = truncateMeta(detail.title, 48);
+  const breadcrumbLeaf = truncateMeta(detail.body, 48);
 
   return (
     <div className="forum-page forum-detail">
@@ -234,7 +226,7 @@ export function ForumQuestionDetailPage() {
                 </span>
               </span>
             </div>
-            <h1 className="forum-detail-title">{detail.title}</h1>
+            <h1 className="forum-detail-title forum-detail-title--body">{detail.body}</h1>
             <div className="forum-patient-profile">
               <div className="forum-patient-avatar" aria-hidden>
                 P
@@ -245,11 +237,6 @@ export function ForumQuestionDetailPage() {
                   {detail.category} · Submitted via Ask Question
                 </div>
               </div>
-            </div>
-            <div className="forum-patient-body">
-              {(patientParas.length ? patientParas : [detail.body]).map((para) => (
-                <p key={para.slice(0, 48)}>{para}</p>
-              ))}
             </div>
             <div className="forum-patient-actions">
               <div className="forum-patient-left">

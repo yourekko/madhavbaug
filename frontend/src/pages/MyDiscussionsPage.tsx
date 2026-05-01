@@ -181,7 +181,7 @@ export default function MyDiscussionsPage() {
                   className={`md-thread-btn ${q.id === selectedId ? 'is-active' : ''}`}
                   onClick={() => setSelectedId(q.id)}
                 >
-                  <span className="md-thread-btn-title">{q.title}</span>
+                  <span className="md-thread-btn-title">{q.body}</span>
                   <span className="md-thread-meta">
                     <span>{q.category}</span>
                     <span aria-hidden>·</span>
@@ -204,7 +204,7 @@ export default function MyDiscussionsPage() {
             ) : (
               <>
                 <div className="md-panel-header">
-                  <h2>{selected.title}</h2>
+                  <h2>{selected.body}</h2>
                   <div className="md-panel-header-meta">
                     <span>{selected.category}</span>
                     <span aria-hidden>·</span>
@@ -223,8 +223,6 @@ export default function MyDiscussionsPage() {
                   </div>
                 </div>
                 <div className="md-panel-body">
-                  <p className="md-question-body">{selected.body}</p>
-
                   <h3 className="md-section-title">
                     <FaStethoscope aria-hidden />
                     Doctor answers

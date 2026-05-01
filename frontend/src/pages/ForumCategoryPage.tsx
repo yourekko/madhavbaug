@@ -232,10 +232,9 @@ export function ForumCategoryPage() {
                         {filter === 'open' ? 'Awaiting doctor' : 'Doctor answered'}
                       </span>
                     </div>
-                    <Link to={`/forum/${slug}/question/${item.slug}`} className="forum-q-title">
-                      {item.title}
+                    <Link to={`/forum/${slug}/question/${item.slug}`} className="forum-q-title forum-q-title--full">
+                      {item.body || item.title}
                     </Link>
-                    <p className="forum-q-snippet">{item.snippet}</p>
                     <div className="forum-q-footer">
                       <div className="forum-q-stats">
                         <span>

@@ -63,6 +63,8 @@ const faqItems = [
 
 const MAX_Q = 2000;
 const MIN_Q = 20;
+/** Must match API `CreateQuestionDto` @MaxLength(180) — was 80 and cut titles mid-sentence in lists. */
+const MAX_TITLE_LEN = 180;
 
 type AskLocationState = { draftQuestion?: string };
 
@@ -105,7 +107,7 @@ export default function AskQuestionPage() {
         {
           method: 'POST',
           body: JSON.stringify({
-            title: question.slice(0, 80) || 'Health Question',
+            title: question.trim().slice(0, MAX_TITLE_LEN) || 'Health Question',
             body: question,
             category,
           }),

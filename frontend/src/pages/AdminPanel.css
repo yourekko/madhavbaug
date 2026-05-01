@@ -918,6 +918,12 @@
   max-width: 360px;
 }
 
+.admin-table--qa .admin-td-question.admin-td-strong {
+  max-width: none;
+  white-space: normal;
+  word-break: break-word;
+}
+
 .admin-code {
   font-size: 0.78rem;
   padding: 2px 6px;
@@ -1029,6 +1035,28 @@
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(1, 101, 137, 0.25);
   transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.admin-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.admin-btn-danger:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
 }
 
 .admin-btn-primary:hover {
