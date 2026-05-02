@@ -293,7 +293,7 @@ export default function AdminPanelPage() {
   }
 
   async function deleteQuestion(q: AdminQuestion) {
-    if (!token || (user?.role !== 'superadmin' && user?.role !== 'admin')) return;
+    if (!token) return;
     const previewSource = q.body?.trim() || q.title;
     const preview = previewSource.length > 160 ? `${previewSource.slice(0, 160)}…` : previewSource;
     if (!window.confirm(`Permanently delete this question from the database?\n\n${preview}`)) return;
@@ -542,7 +542,9 @@ export default function AdminPanelPage() {
             <p className="admin-topbar-sub">Signed in as {user?.name ?? user?.email ?? 'Admin'}</p>
           </div>
           <div className="admin-topbar-actions">
-            <span className="admin-role-chip">{user?.role === 'superadmin' ? 'Superadmin' : 'Admin'}</span>
+            <span className="admin-role-chip">
+              {user?.role === 'superadmin' ? 'Superadmin' : user?.role === 'admin' ? 'Admin' : user?.role ?? '—'}
+            </span>
             <button type="button" className="admin-logout-btn" onClick={() => logout()}>
               <FaRightFromBracket aria-hidden />
               Log out
@@ -903,7 +905,7 @@ export default function AdminPanelPage() {
                       <th>Category</th>
                       <th>Status</th>
                       <th>Assign</th>
-                      {user?.role === 'superadmin' || user?.role === 'admin' ? <th>Actions</th> : null}
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -934,17 +936,15 @@ export default function AdminPanelPage() {
                             ))}
                           </select>
                         </td>
-                        {user?.role === 'superadmin' || user?.role === 'admin' ? (
-                          <td>
-                            <button
-                              type="button"
-                              className="admin-btn-danger"
-                              onClick={() => deleteQuestion(q).catch(() => undefined)}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        ) : null}
+                        <td>
+                          <button
+                            type="button"
+                            className="admin-btn-danger"
+                            onClick={() => deleteQuestion(q).catch(() => undefined)}
+                          >
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

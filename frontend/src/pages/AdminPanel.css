@@ -924,6 +924,13 @@
   word-break: break-word;
 }
 
+.admin-table--qa th:last-child,
+.admin-table--qa td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 .admin-code {
   font-size: 0.78rem;
   padding: 2px 6px;
