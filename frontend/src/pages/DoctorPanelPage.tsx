@@ -103,9 +103,11 @@ export default function DoctorPanelPage() {
   }, [selected?.id, token, loadThread]);
 
   const publishedAnswers = (thread?.answers ?? []).filter((a) => a.isPublished !== false);
-  const threadOpen =
-    thread && (thread.status === 'open' || thread.status === 'assigned');
-  const canSubmit = Boolean(threadOpen && publishedAnswers.length === 0);
+  const threadAcceptsAnswers =
+    thread &&
+    (thread.status === 'open' || thread.status === 'assigned' || thread.status === 'answered');
+  const hasMyPublishedAnswer = publishedAnswers.some((a) => a.doctorUserId === user?.id);
+  const canSubmit = Boolean(threadAcceptsAnswers && !hasMyPublishedAnswer);
 
   async function submitAnswer(e: FormEvent) {
     e.preventDefault();
@@ -122,7 +124,7 @@ export default function DoctorPanelPage() {
       );
       setAnswerText('');
       setDraftKey((k) => k + 1);
-      toast.success('Your answer was posted. No other doctor can add a competing reply to this thread.');
+      toast.success('Your answer was published.');
       await loadQueue();
       await loadThread(selected.id);
     } catch (err) {
@@ -154,7 +156,7 @@ export default function DoctorPanelPage() {
               </li>
               <li>
                 <FaCircleCheck aria-hidden />
-                <span>One published answer per thread—clear guidance for patients</span>
+                <span>Multiple verified doctors can add perspectives on the same thread</span>
               </li>
               <li>
                 <FaCircleCheck aria-hidden />
@@ -216,8 +218,9 @@ export default function DoctorPanelPage() {
         <header className="dp-head">
           <h1>Doctor workspace</h1>
           <p>
-            You see open questions that match the specialties on your profile, plus any thread an admin has explicitly
-            assigned to you. The first published answer closes the thread so patients do not get conflicting advice.
+            You see questions that match the specialties on your profile, plus any thread an admin has explicitly
+            assigned to you. Other doctors can still reply after the first answer unless the case is exclusively assigned
+            to someone else.
           </p>
         </header>
 
@@ -280,7 +283,7 @@ export default function DoctorPanelPage() {
                 </h3>
                 {publishedAnswers.length === 0 ? (
                   <div className="dp-callout dp-callout--info">
-                    No doctor reply yet. The first published answer locks this case for other doctors.
+                    No doctor reply yet. Verified doctors matching this topic can publish an answer here.
                   </div>
                 ) : (
                   publishedAnswers.map((a) => (
@@ -314,9 +317,9 @@ export default function DoctorPanelPage() {
                 ) : (
                   <div className="dp-callout dp-callout--locked">
                     <FaLock aria-hidden style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                    {publishedAnswers.length > 0
-                      ? 'This question already has a published doctor answer. Other doctors cannot post an additional reply.'
-                      : 'This thread is no longer open for new answers.'}
+                    {hasMyPublishedAnswer
+                      ? 'You have already published an answer on this thread.'
+                      : 'This thread is no longer open for new answers, or you do not have access to reply.'}
                   </div>
                 )}
               </>

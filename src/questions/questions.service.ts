@@ -59,16 +59,14 @@ export class QuestionsService implements OnModuleInit {
     const assigned = await this.assignmentRepo.findOne({ where: { questionId, doctorUserId } });
     if (assigned) return true;
 
-    const hasPublishedAnswer = await this.answerRepo.exist({
-      where: { questionId, isPublished: true },
-    });
-    const inOpenPool =
-      !hasPublishedAnswer &&
-      (question.status === QuestionStatus.OPEN || question.status === QuestionStatus.ASSIGNED);
-    if (!inOpenPool) return false;
-
     const assignRows = await this.assignmentRepo.find({ where: { questionId } });
     if (assignRows.some((a) => a.doctorUserId !== doctorUserId)) return false;
+
+    const inPool =
+      question.status === QuestionStatus.OPEN ||
+      question.status === QuestionStatus.ASSIGNED ||
+      question.status === QuestionStatus.ANSWERED;
+    if (!inPool) return false;
 
     const expertise = await this.getDoctorNormalizedExpertise(doctorUserId);
     return this.questionMatchesDoctorExpertise(question.category, expertise);
@@ -151,13 +149,13 @@ export class QuestionsService implements OnModuleInit {
   }
 
   async listDoctorQuestions(doctorUserId: string, status?: QuestionStatus, page = 1, limit = 20) {
-    const publishedRows = await this.answerRepo
+    const myPublishedRows = await this.answerRepo
       .createQueryBuilder('a')
       .select('a.question_id', 'questionId')
-      .where('a.is_published = :pub', { pub: true })
-      .distinct(true)
+      .where('a.doctor_user_id = :docId', { docId: doctorUserId })
+      .andWhere('a.is_published = :pub', { pub: true })
       .getRawMany<{ questionId: string }>();
-    const answeredQuestionIds = new Set(publishedRows.map((r) => r.questionId));
+    const myPublishedQuestionIds = new Set(myPublishedRows.map((r) => r.questionId));
 
     const normalizedExpertise = await this.getDoctorNormalizedExpertise(doctorUserId);
 
@@ -169,7 +167,11 @@ export class QuestionsService implements OnModuleInit {
     const assignedQuestions = assignments.map((a) => a.question).filter(Boolean);
 
     const poolCandidates = await this.questionRepo.find({
-      where: [{ status: QuestionStatus.OPEN }, { status: QuestionStatus.ASSIGNED }],
+      where: [
+        { status: QuestionStatus.OPEN },
+        { status: QuestionStatus.ASSIGNED },
+        { status: QuestionStatus.ANSWERED },
+      ],
       order: { createdAt: 'DESC' },
       take: 500,
     });
@@ -191,7 +193,7 @@ export class QuestionsService implements OnModuleInit {
     }
 
     const pool = poolCandidates.filter((q) => {
-      if (answeredQuestionIds.has(q.id)) return false;
+      if (myPublishedQuestionIds.has(q.id)) return false;
       const assignees = assigneesByQuestion.get(q.id);
       if (assignees?.has(doctorUserId)) return false;
       if (assignees && assignees.size > 0) return false;
@@ -219,7 +221,7 @@ export class QuestionsService implements OnModuleInit {
       status: q.status,
       createdAt: q.createdAt,
       assignedToMe: assignedIds.has(q.id),
-      canAnswer: !answeredQuestionIds.has(q.id),
+      canAnswer: !myPublishedQuestionIds.has(q.id),
     }));
   }
 
@@ -247,15 +249,19 @@ export class QuestionsService implements OnModuleInit {
         .getOne();
       if (!question) throw new NotFoundException('Question not found.');
 
-      const publishedCount = await aRepo.count({ where: { questionId, isPublished: true } });
-      if (publishedCount > 0) {
-        throw new ConflictException('This question has already been answered by another doctor.');
+      const myPublishedCount = await aRepo.count({
+        where: { questionId, doctorUserId, isPublished: true },
+      });
+      if (myPublishedCount > 0) {
+        throw new ConflictException('You have already published an answer on this question.');
       }
 
       const assigned = await asRepo.findOne({ where: { doctorUserId, questionId } });
       if (!assigned) {
         const inOpenPool =
-          question.status === QuestionStatus.OPEN || question.status === QuestionStatus.ASSIGNED;
+          question.status === QuestionStatus.OPEN ||
+          question.status === QuestionStatus.ASSIGNED ||
+          question.status === QuestionStatus.ANSWERED;
         if (!inOpenPool) {
           throw new ForbiddenException('You cannot answer this question.');
         }
@@ -280,15 +286,6 @@ export class QuestionsService implements OnModuleInit {
         }),
       );
       await qRepo.update({ id: questionId }, { status: QuestionStatus.ANSWERED });
-      if (!assigned) {
-        await asRepo.save(
-          asRepo.create({
-            questionId,
-            doctorUserId,
-            assignedBy: null,
-          }),
-        );
-      }
 
       await this.log(doctorUserId, 'answer.create', 'question', questionId, { answerId: answer.id });
       return answer;
