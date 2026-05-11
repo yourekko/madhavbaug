@@ -16,6 +16,7 @@ class PatientSignupDto {
     email;
     phone;
     password;
+    signupLocation;
 }
 exports.PatientSignupDto = PatientSignupDto;
 __decorate([
@@ -37,4 +38,10 @@ __decorate([
     (0, class_validator_1.MinLength)(8),
     __metadata("design:type", String)
 ], PatientSignupDto.prototype, "password", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(180),
+    __metadata("design:type", String)
+], PatientSignupDto.prototype, "signupLocation", void 0);
 //# sourceMappingURL=patient-signup.dto.js.map

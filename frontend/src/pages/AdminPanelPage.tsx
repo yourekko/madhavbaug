@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -20,6 +20,7 @@ import { Seo } from '../components/Seo';
 import { useAuthModal } from '../context/AuthModalContext';
 import { useSession } from '../context/SessionContext';
 import { apiRequest } from '../lib/api';
+import { QUESTION_CATEGORY_ALL } from '../constants/questionCategories';
 import './AdminPanel.css';
 
 type AdminDashboard = {
@@ -49,6 +50,18 @@ type AdminDashboard = {
   }>;
 };
 
+type AdminQuestionPatient = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  signupLocation?: string | null;
+  memberSince: string;
+  accountUpdatedAt?: string;
+  isActive?: boolean;
+  signInMethod?: 'google' | 'phone_or_email';
+};
+
 type AdminQuestion = {
   id: string;
   title: string;
@@ -56,6 +69,11 @@ type AdminQuestion = {
   status: string;
   category: string;
   patientUserId: string;
+  createdAt?: string;
+  patientAgeGroup?: string | null;
+  patientGender?: string | null;
+  patientHistory?: string | null;
+  patient?: AdminQuestionPatient | null;
 };
 
 type Doctor = {
@@ -84,6 +102,11 @@ type PatientAnalytics = {
   patientName: string;
   email: string | null;
   phone: string | null;
+  signupLocation: string | null;
+  isActive: boolean;
+  memberSince: string;
+  accountUpdatedAt: string;
+  signInMethod: 'google' | 'phone_or_email';
   totalQuestions: number;
   questionsLast30Days: number;
   answeredQuestions: number;
@@ -160,6 +183,12 @@ function formatCompactDate(iso: string | null): string {
   } catch {
     return iso;
   }
+}
+
+function patientSignInLabel(method: AdminQuestionPatient['signInMethod'] | PatientAnalytics['signInMethod']): string {
+  if (method === 'google') return 'Google';
+  if (method === 'phone_or_email') return 'Phone / email + password';
+  return '—';
 }
 
 function topCategoriesText(rows: Array<{ category: string; count: number }>, max = 3): string {
@@ -252,12 +281,16 @@ export default function AdminPanelPage() {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [qaCategoryFilter, setQaCategoryFilter] = useState('');
+  const [patientReportCategoryFilter, setPatientReportCategoryFilter] = useState('');
 
   const loadAll = useCallback(async () => {
     if (!token) return;
+    const questionsParams = new URLSearchParams({ limit: '100' });
+    if (qaCategoryFilter.trim()) questionsParams.set('category', qaCategoryFilter.trim());
     const [dash, q, d, s, dr, pr] = await Promise.all([
       apiRequest<AdminDashboard>('/admin/dashboard', {}, token),
-      apiRequest<AdminQuestion[]>('/admin/questions?limit=100', {}, token),
+      apiRequest<AdminQuestion[]>(`/admin/questions?${questionsParams.toString()}`, {}, token),
       apiRequest<Doctor[]>('/admin/doctors', {}, token),
       apiRequest<SeoPage | null>('/admin/seo/pages/home', {}, token),
       apiRequest<DoctorAnalytics[]>('/admin/reports/doctors', {}, token),
@@ -271,12 +304,32 @@ export default function AdminPanelPage() {
     setSeoHome(s);
     setSeoTitle(s?.title ?? 'Home');
     setSeoDescription(s?.metaDescription ?? '');
-  }, [token]);
+  }, [token, qaCategoryFilter]);
 
   useEffect(() => {
     if (!token) return;
     loadAll().catch((err) => setError(err instanceof Error ? err.message : 'Unable to load admin data.'));
   }, [token, loadAll]);
+
+  const qaCategorySelectOptions = useMemo(() => {
+    const set = new Set<string>(QUESTION_CATEGORY_ALL);
+    for (const q of questions) set.add(q.category);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [questions]);
+
+  const patientCategorySelectOptions = useMemo(() => {
+    const set = new Set<string>(QUESTION_CATEGORY_ALL);
+    for (const p of patientReports) {
+      for (const c of p.categoriesAsked) set.add(c.category);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [patientReports]);
+
+  const filteredPatientReports = useMemo(() => {
+    const cat = patientReportCategoryFilter.trim();
+    if (!cat) return patientReports;
+    return patientReports.filter((p) => p.categoriesAsked.some((c) => c.category === cat));
+  }, [patientReports, patientReportCategoryFilter]);
 
   function navTo(view: AdminView) {
     setActiveView(view);
@@ -433,10 +486,16 @@ export default function AdminPanelPage() {
     lastAnswerAt: formatCompactDate(doctor.lastAnswerAt),
   }));
 
-  const patientReportRows = patientReports.map((patient) => ({
+  const patientReportRows = filteredPatientReports.map((patient) => ({
+    patientUserId: patient.patientUserId,
     patientName: patient.patientName,
     email: patient.email ?? '',
     phone: patient.phone ?? '',
+    signupLocation: patient.signupLocation?.trim() ?? '',
+    accountStatus: patient.isActive === false ? 'Inactive' : 'Active',
+    signInMethod: patientSignInLabel(patient.signInMethod),
+    memberSince: formatCompactDate(patient.memberSince),
+    accountUpdatedAt: formatCompactDate(patient.accountUpdatedAt),
     totalQuestions: patient.totalQuestions,
     questionsLast30Days: patient.questionsLast30Days,
     answeredQuestions: patient.answeredQuestions,
@@ -460,9 +519,15 @@ export default function AdminPanelPage() {
   ];
 
   const patientColumns: ExportColumn<(typeof patientReportRows)[number]>[] = [
+    { key: 'patientUserId', label: 'User ID' },
     { key: 'patientName', label: 'Patient' },
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Phone' },
+    { key: 'signupLocation', label: 'Location (signup)' },
+    { key: 'accountStatus', label: 'Account' },
+    { key: 'signInMethod', label: 'Sign-in method' },
+    { key: 'memberSince', label: 'Member since' },
+    { key: 'accountUpdatedAt', label: 'Profile updated' },
     { key: 'totalQuestions', label: 'Total Questions' },
     { key: 'questionsLast30Days', label: 'Questions Last 30 Days' },
     { key: 'answeredQuestions', label: 'Answered Questions' },
@@ -796,6 +861,23 @@ export default function AdminPanelPage() {
               <section className="admin-panel">
                 <h2 className="admin-panel-title">Patient-wise analytics report</h2>
                 <p className="admin-panel-lead">Question volume, follow-up behavior, and category demand by patient.</p>
+                <div className="admin-toolbar-row">
+                  <label className="admin-filter-field">
+                    <span className="admin-filter-label">Filter by category</span>
+                    <select
+                      className="admin-select"
+                      value={patientReportCategoryFilter}
+                      onChange={(e) => setPatientReportCategoryFilter(e.target.value)}
+                    >
+                      <option value="">All categories</option>
+                      {patientCategorySelectOptions.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 <div className="admin-export-actions">
                   <button type="button" className="admin-btn-secondary" onClick={() => exportToCsv(patientReportRows, patientColumns, `patient-report-${new Date().toISOString().slice(0, 10)}.csv`)}>
                     Export CSV
@@ -812,6 +894,13 @@ export default function AdminPanelPage() {
                     <thead>
                       <tr>
                         <th>Patient</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Location</th>
+                        <th>Account</th>
+                        <th>Sign-in</th>
+                        <th>Member since</th>
+                        <th>Updated</th>
                         <th>Total questions</th>
                         <th>Last 30 days</th>
                         <th>Answered</th>
@@ -823,17 +912,48 @@ export default function AdminPanelPage() {
                     <tbody>
                       {patientReports.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="admin-table-empty">
+                          <td colSpan={14} className="admin-table-empty">
                             No patient analytics found.
                           </td>
                         </tr>
+                      ) : filteredPatientReports.length === 0 ? (
+                        <tr>
+                          <td colSpan={14} className="admin-table-empty">
+                            No patients match this category filter.
+                          </td>
+                        </tr>
                       ) : (
-                        patientReports.map((patient) => (
+                        filteredPatientReports.map((patient) => (
                           <tr key={patient.patientUserId}>
                             <td>
                               <div className="admin-td-strong">{patient.patientName}</div>
-                              <div className="admin-td-muted">{patient.email ?? patient.phone ?? '—'}</div>
+                              <code className="admin-qa-user-id" title={patient.patientUserId}>
+                                {patient.patientUserId.slice(0, 8)}…
+                              </code>
                             </td>
+                            <td className="admin-td-contact">
+                              {patient.email ? (
+                                <a className="admin-qa-mail" href={`mailto:${patient.email}`}>
+                                  {patient.email}
+                                </a>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                            <td className="admin-td-contact">
+                              {patient.phone ? (
+                                <a className="admin-qa-tel" href={`tel:${patient.phone.replace(/\s/g, '')}`}>
+                                  {patient.phone}
+                                </a>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                            <td className="admin-td-muted">{patient.signupLocation?.trim() || '—'}</td>
+                            <td>{patient.isActive === false ? 'Inactive' : 'Active'}</td>
+                            <td className="admin-td-muted">{patientSignInLabel(patient.signInMethod)}</td>
+                            <td className="admin-td-muted">{formatCompactDate(patient.memberSince)}</td>
+                            <td className="admin-td-muted">{formatCompactDate(patient.accountUpdatedAt)}</td>
                             <td>{patient.totalQuestions}</td>
                             <td>{patient.questionsLast30Days}</td>
                             <td>{patient.answeredQuestions}</td>
@@ -897,11 +1017,31 @@ export default function AdminPanelPage() {
                 Doctors usually claim threads by expertise. Use assignment only when routing a case to a specific
                 clinician.
               </p>
+              <div className="admin-toolbar-row">
+                <label className="admin-filter-field">
+                  <span className="admin-filter-label">Filter by category</span>
+                  <select
+                    className="admin-select"
+                    value={qaCategoryFilter}
+                    onChange={(e) => setQaCategoryFilter(e.target.value)}
+                  >
+                    <option value="">All categories</option>
+                    {qaCategorySelectOptions.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className="admin-table-wrap">
                 <table className="admin-table admin-table--qa">
                   <thead>
                     <tr>
                       <th>Question</th>
+                      <th>Patient</th>
+                      <th>Phone</th>
+                      <th>Email</th>
                       <th>Category</th>
                       <th>Status</th>
                       <th>Assign</th>
@@ -909,44 +1049,178 @@ export default function AdminPanelPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {questions.map((q) => (
-                      <tr key={q.id}>
-                        <td className="admin-td-strong admin-td-question">{q.body ?? q.title}</td>
-                        <td>{q.category}</td>
-                        <td>
-                          <span className={statusBadgeClass(q.status)}>{q.status}</span>
-                        </td>
-                        <td>
-                          <select
-                            className="admin-select"
-                            defaultValue=""
-                            aria-label={`Assign doctor for ${(q.body ?? q.title).slice(0, 120)}`}
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                assignDoctor(q.id, e.target.value).catch(() => undefined);
-                                e.target.value = '';
-                              }
-                            }}
-                          >
-                            <option value="">Optional…</option>
-                            {doctors.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.name}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="admin-btn-danger"
-                            onClick={() => deleteQuestion(q).catch(() => undefined)}
-                          >
-                            Delete
-                          </button>
+                    {questions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="admin-table-empty">
+                          No questions in the queue.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      questions.map((q) => (
+                      <Fragment key={q.id}>
+                        <tr>
+                          <td className="admin-td-strong admin-td-question">{q.body ?? q.title}</td>
+                          <td className="admin-td-contact">
+                            {q.patient ? (
+                              <>
+                                <div className="admin-qa-contact-name">{q.patient.name}</div>
+                                {q.patient.isActive === false ? (
+                                  <span className="admin-qa-account-flag admin-qa-account-flag--inactive">Inactive</span>
+                                ) : null}
+                              </>
+                            ) : (
+                              <>
+                                <div className="admin-td-muted">No profile loaded</div>
+                                <code className="admin-qa-user-id" title={q.patientUserId}>
+                                  {q.patientUserId.slice(0, 8)}…
+                                </code>
+                              </>
+                            )}
+                          </td>
+                          <td className="admin-td-contact">
+                            {q.patient?.phone ? (
+                              <a className="admin-qa-tel" href={`tel:${q.patient.phone.replace(/\s/g, '')}`}>
+                                {q.patient.phone}
+                              </a>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td className="admin-td-contact">
+                            {q.patient?.email ? (
+                              <a className="admin-qa-mail" href={`mailto:${q.patient.email}`}>
+                                {q.patient.email}
+                              </a>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td>{q.category}</td>
+                          <td>
+                            <span className={statusBadgeClass(q.status)}>{q.status}</span>
+                          </td>
+                          <td>
+                            <select
+                              className="admin-select"
+                              defaultValue=""
+                              aria-label={`Assign doctor for ${(q.body ?? q.title).slice(0, 120)}`}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  assignDoctor(q.id, e.target.value).catch(() => undefined);
+                                  e.target.value = '';
+                                }
+                              }}
+                            >
+                              <option value="">Optional…</option>
+                              {doctors.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="admin-btn-danger"
+                              onClick={() => deleteQuestion(q).catch(() => undefined)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                        <tr className="admin-qa-meta-row">
+                          <td colSpan={8}>
+                            <div className="admin-qa-patient-strip">
+                              <div className="admin-qa-patient-block">
+                                <span className="admin-qa-patient-title">Patient (signup)</span>
+                                {q.patient ? (
+                                  <dl className="admin-qa-dl">
+                                    <div className="admin-qa-dl-wide">
+                                      <dt>User ID</dt>
+                                      <dd>
+                                        <code className="admin-code">{q.patient.id}</code>
+                                      </dd>
+                                    </div>
+                                    <div>
+                                      <dt>Name</dt>
+                                      <dd>{q.patient.name}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Phone</dt>
+                                      <dd>
+                                        {q.patient.phone ? (
+                                          <a href={`tel:${q.patient.phone.replace(/\s/g, '')}`}>{q.patient.phone}</a>
+                                        ) : (
+                                          '—'
+                                        )}
+                                      </dd>
+                                    </div>
+                                    <div>
+                                      <dt>Email</dt>
+                                      <dd>
+                                        {q.patient.email ? (
+                                          <a href={`mailto:${q.patient.email}`}>{q.patient.email}</a>
+                                        ) : (
+                                          '—'
+                                        )}
+                                      </dd>
+                                    </div>
+                                    <div>
+                                      <dt>Account</dt>
+                                      <dd>{q.patient.isActive === false ? 'Inactive' : 'Active'}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Sign-in</dt>
+                                      <dd>{patientSignInLabel(q.patient.signInMethod)}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Location</dt>
+                                      <dd>{q.patient.signupLocation?.trim() || '—'}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Member since</dt>
+                                      <dd>{formatCompactDate(q.patient.memberSince)}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Profile updated</dt>
+                                      <dd>
+                                        {q.patient.accountUpdatedAt
+                                          ? formatCompactDate(q.patient.accountUpdatedAt)
+                                          : '—'}
+                                      </dd>
+                                    </div>
+                                  </dl>
+                                ) : (
+                                  <p className="admin-qa-muted">
+                                    No patient profile on this row. Question is tied to user ID{' '}
+                                    <code className="admin-code">{q.patientUserId}</code>.
+                                  </p>
+                                )}
+                              </div>
+                              <div className="admin-qa-patient-block">
+                                <span className="admin-qa-patient-title">With this question</span>
+                                <dl className="admin-qa-dl">
+                                  <div>
+                                    <dt>Age group</dt>
+                                    <dd>{q.patientAgeGroup?.trim() || '—'}</dd>
+                                  </div>
+                                  <div>
+                                    <dt>Gender</dt>
+                                    <dd>{q.patientGender?.trim() || '—'}</dd>
+                                  </div>
+                                  <div className="admin-qa-dl-wide">
+                                    <dt>Relevant history</dt>
+                                    <dd>{q.patientHistory?.trim() || '—'}</dd>
+                                  </div>
+                                </dl>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </Fragment>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

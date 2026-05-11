@@ -1,4 +1,3 @@
-import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { DoctorSignupDto } from './dto/doctor-signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -27,7 +26,7 @@ export declare class AuthController {
             phone: string | null;
         };
     }>;
-    uploadDoctorPhoto(file: Express.Multer.File, req: Request): {
+    uploadDoctorPhoto(file: Express.Multer.File): {
         url: string;
     };
     login(dto: LoginDto): Promise<{

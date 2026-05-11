@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   apiRequest,
   clearStoredSession,
@@ -14,7 +15,13 @@ type SessionContextValue = {
   token: string | null;
   isAuthenticated: boolean;
   login: (input: { email?: string; phone?: string; password: string }) => Promise<void>;
-  signup: (input: { name: string; email?: string; phone?: string; password: string }) => Promise<void>;
+  signup: (input: {
+    name: string;
+    email?: string;
+    phone?: string;
+    password: string;
+    signupLocation?: string;
+  }) => Promise<void>;
   loginWithGoogle: (idToken: string, role: 'patient' | 'doctor') => Promise<void>;
   /** Updates token and user after profile completion or similar flows */
   replaceSession: (payload: AuthPayload) => void;
@@ -24,6 +31,7 @@ type SessionContextValue = {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<ApiUser | null>(() => getStoredUser());
   const [token, setToken] = useState<string | null>(() => getStoredToken());
 
@@ -49,7 +57,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     replaceSession(payload);
   }
 
-  async function signup(input: { name: string; email?: string; phone?: string; password: string }) {
+  async function signup(input: {
+    name: string;
+    email?: string;
+    phone?: string;
+    password: string;
+    signupLocation?: string;
+  }) {
     const payload = await apiRequest<AuthPayload>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -71,11 +85,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStoredSession(payload.accessToken, payload.user);
   }
 
-  function logout() {
+  const logout = useCallback(() => {
     setUser(null);
     setToken(null);
     clearStoredSession();
-  }
+    navigate('/forum', { replace: true });
+  }, [navigate]);
 
   const value = useMemo<SessionContextValue>(
     () => ({
@@ -88,7 +103,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       replaceSession,
       logout,
     }),
-    [user, token],
+    [user, token, logout],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

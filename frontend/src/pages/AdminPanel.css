@@ -608,6 +608,32 @@
   line-height: 1.45;
 }
 
+.admin-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin: 0 0 14px;
+}
+
+.admin-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-filter-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.admin-toolbar-row .admin-select {
+  min-width: 200px;
+}
+
 .admin-export-actions {
   display: flex;
   flex-wrap: wrap;
@@ -929,6 +955,121 @@
   width: 1%;
   white-space: nowrap;
   vertical-align: middle;
+}
+
+.admin-table--qa tr.admin-qa-meta-row td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 12px 16px 16px;
+  background: #f8fafc;
+  vertical-align: top;
+}
+
+.admin-table--qa tr.admin-qa-meta-row:hover td {
+  background: #f1f5f9;
+}
+
+.admin-qa-patient-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 24px;
+}
+
+.admin-qa-patient-block {
+  min-width: 0;
+}
+
+.admin-qa-patient-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.admin-qa-dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.admin-qa-dl div {
+  margin: 0;
+}
+
+.admin-qa-dl dt {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-qa-dl dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.admin-qa-dl-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-qa-muted {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.admin-table--qa .admin-td-contact {
+  max-width: 200px;
+  font-size: 13px;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.admin-qa-contact-name {
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.admin-qa-account-flag {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-qa-account-flag--inactive {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+}
+
+.admin-qa-user-id {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.admin-qa-tel,
+.admin-qa-mail {
+  color: #016589;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.admin-qa-tel:hover,
+.admin-qa-mail:hover {
+  text-decoration: underline;
 }
 
 .admin-code {

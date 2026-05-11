@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class PatientSignupDto {
   @IsString()
@@ -15,4 +15,9 @@ export class PatientSignupDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  signupLocation?: string;
 }

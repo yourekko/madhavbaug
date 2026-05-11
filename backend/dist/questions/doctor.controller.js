@@ -41,12 +41,10 @@ let DoctorController = class DoctorController {
     answer(user, id, dto) {
         return this.questionsService.addDoctorAnswer(user.sub, id, dto);
     }
-    uploadImage(file, req) {
+    uploadImage(file) {
         if (!file)
             throw new common_1.BadRequestException('No image file received.');
-        const host = req.get('host');
-        const proto = req.protocol;
-        return { url: `${proto}://${host}/uploads/${file.filename}` };
+        return { url: `/uploads/${file.filename}` };
     }
     updateAnswerPlaceholder(id, dto) {
         return { id, answerText: dto.answerText, updated: true };
@@ -100,9 +98,8 @@ __decorate([
         },
     })),
     __param(0, (0, common_1.UploadedFile)()),
-    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], DoctorController.prototype, "uploadImage", null);
 __decorate([

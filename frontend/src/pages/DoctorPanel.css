@@ -213,6 +213,38 @@
   color: #94a3b8;
 }
 
+.dp-reco-field {
+  display: block;
+  margin-top: 14px;
+}
+
+.dp-reco-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.dp-reco-textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1e293b;
+  background: #fff;
+}
+
+.dp-reco-textarea:focus {
+  outline: none;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.18);
+}
+
 .dp-callout {
   border-radius: 14px;
   padding: 14px 16px;

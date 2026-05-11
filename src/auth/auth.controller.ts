@@ -1,9 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { randomUUID } from 'crypto';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AuthService } from './auth.service';
@@ -46,11 +45,9 @@ export class AuthController {
       },
     }),
   )
-  uploadDoctorPhoto(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  uploadDoctorPhoto(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No image file received.');
-    const host = req.get('host');
-    const proto = req.protocol;
-    return { url: `${proto}://${host}/uploads/${file.filename}` };
+    return { url: `/uploads/${file.filename}` };
   }
 
   @Post('login')

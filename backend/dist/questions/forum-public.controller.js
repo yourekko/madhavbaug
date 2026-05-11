@@ -35,10 +35,10 @@ let ForumPublicController = class ForumPublicController {
         const sortBy = sort === 'views' ? 'views' : 'latest';
         return this.questionsService.listPublicForumQuestions(categorySlug, Number(page ?? 1), Number(limit ?? 10), search, f, sortBy);
     }
-    detail(categorySlug, questionSlug) {
+    detail(req, viewerId, categorySlug, questionSlug) {
         if (!(0, forum_category_map_1.isValidForumCategorySlug)(categorySlug))
             throw new common_1.NotFoundException();
-        return this.questionsService.getPublicForumQuestionDetail(categorySlug, questionSlug);
+        return this.questionsService.getPublicForumQuestionDetail(categorySlug, questionSlug, req, viewerId);
     }
     report(categorySlug, questionSlug, dto) {
         if (!(0, forum_category_map_1.isValidForumCategorySlug)(categorySlug))
@@ -73,10 +73,12 @@ __decorate([
 ], ForumPublicController.prototype, "list", null);
 __decorate([
     (0, common_1.Get)(':categorySlug/questions/:questionSlug'),
-    __param(0, (0, common_1.Param)('categorySlug')),
-    __param(1, (0, common_1.Param)('questionSlug')),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Headers)('x-forum-viewer-id')),
+    __param(2, (0, common_1.Param)('categorySlug')),
+    __param(3, (0, common_1.Param)('questionSlug')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [Object, Object, String, String]),
     __metadata("design:returntype", void 0)
 ], ForumPublicController.prototype, "detail", null);
 __decorate([

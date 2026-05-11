@@ -1,4 +1,16 @@
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000';
+/** Base URL for API calls. Must be absolute (https://…) in production or requests hit the static host and fail with "Cannot POST /auth/…". */
+function resolveApiBaseUrl(): string {
+  const raw = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
+  if (raw) return raw.replace(/\/$/, '');
+  if (import.meta.env.PROD) {
+    console.error(
+      'Missing VITE_API_BASE_URL in this build — rebuild with .env / .env.production set to your Render API origin.',
+    );
+  }
+  return 'http://localhost:3000';
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export type ApiUser = {
   id: string;

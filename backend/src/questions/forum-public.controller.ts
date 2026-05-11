@@ -1,4 +1,15 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { ForumReportDto } from './dto/forum-report.dto';
 import { isValidForumCategorySlug } from './forum-category-map';
 import { QuestionsService } from './questions.service';
@@ -40,9 +51,14 @@ export class ForumPublicController {
   }
 
   @Get(':categorySlug/questions/:questionSlug')
-  detail(@Param('categorySlug') categorySlug: string, @Param('questionSlug') questionSlug: string) {
+  detail(
+    @Req() req: Request,
+    @Headers('x-forum-viewer-id') viewerId: string | undefined,
+    @Param('categorySlug') categorySlug: string,
+    @Param('questionSlug') questionSlug: string,
+  ) {
     if (!isValidForumCategorySlug(categorySlug)) throw new NotFoundException();
-    return this.questionsService.getPublicForumQuestionDetail(categorySlug, questionSlug);
+    return this.questionsService.getPublicForumQuestionDetail(categorySlug, questionSlug, req, viewerId);
   }
 
   @Post(':categorySlug/questions/:questionSlug/report')

@@ -4,7 +4,7 @@ import { FaStethoscope } from 'react-icons/fa6';
 import { Seo } from '../components/Seo';
 import { useSession } from '../context/SessionContext';
 import { useToast } from '../context/ToastContext';
-import { QUESTION_CATEGORY_OPTIONS } from '../constants/questionCategories';
+import { QUESTION_CATEGORY_ALL } from '../constants/questionCategories';
 import { apiRequest, apiUploadPublicImage, type AuthPayload } from '../lib/api';
 import './DoctorAuth.css';
 
@@ -281,7 +281,7 @@ export default function DoctorCompleteProfilePage() {
             <legend className="doctor-expertise-legend">Areas you can answer</legend>
             <p className="doctor-meta doctor-expertise-help">Choose at least one category you are willing to review.</p>
             <div className="doctor-expertise-grid">
-              {QUESTION_CATEGORY_OPTIONS.map((tag) => (
+              {QUESTION_CATEGORY_ALL.map((tag) => (
                 <label key={tag} className="doctor-expertise-chip">
                   <input type="checkbox" checked={expertiseTags.includes(tag)} onChange={() => toggleExpertise(tag)} />
                   <span>{tag}</span>

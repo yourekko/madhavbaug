@@ -17,10 +17,11 @@ import { QuestionFollowup } from '../entities/question-followup.entity';
 import { Question } from '../entities/question.entity';
 import { User } from '../entities/user.entity';
 import { UsersService } from '../users/users.service';
+import { normalizePublicUploadPhotoUrl } from '../common/utils/normalize-upload-url';
 import { buildForumSlug } from '../common/utils/slugify';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { CreateFollowupDto } from './dto/create-followup.dto';
-import { CreateQuestionDto } from './dto/create-question.dto';
+import { CreateQuestionDto, CREATABLE_QUESTION_CATEGORIES } from './dto/create-question.dto';
 import { FORUM_SLUG_TO_CATEGORIES, getCategoriesForForumSlug } from './forum-category-map';
 
 @Injectable()
@@ -40,6 +41,60 @@ export class QuestionsService implements OnModuleInit {
     private readonly auditRepo: Repository<AuditLog>,
     private readonly usersService: UsersService,
   ) {}
+
+  private sanitizeDoctorProfile(profile: NonNullable<User['doctorProfile']>) {
+    return {
+      degree: profile.degree,
+      qualification: profile.qualification,
+      clinicalExperienceYears: profile.clinicalExperienceYears,
+      bio: profile.bio,
+      photoUrl: normalizePublicUploadPhotoUrl(profile.photoUrl),
+      branchName: profile.branchName,
+      profileLink: profile.profileLink,
+      expertiseTags: profile.expertiseTags,
+      profileCompleted: profile.profileCompleted,
+    };
+  }
+
+  private sanitizeQuestionThread(question: Question) {
+    const answers = (question.answers ?? []).map((a) => ({
+      id: a.id,
+      questionId: a.questionId,
+      doctorUserId: a.doctorUserId,
+      answerText: a.answerText,
+      isPublished: a.isPublished,
+      createdAt: a.createdAt,
+      updatedAt: a.updatedAt,
+      doctor: a.doctor
+        ? {
+            id: a.doctor.id,
+            name: a.doctor.name,
+            email: a.doctor.email,
+            phone: a.doctor.phone,
+            role: a.doctor.role,
+            doctorProfile: a.doctor.doctorProfile ? this.sanitizeDoctorProfile(a.doctor.doctorProfile) : null,
+          }
+        : null,
+    }));
+    return {
+      id: question.id,
+      patientUserId: question.patientUserId,
+      title: question.title,
+      body: question.body,
+      category: question.category,
+      status: question.status,
+      forumSlug: question.forumSlug,
+      viewCount: question.viewCount,
+      createdAt: question.createdAt,
+      updatedAt: question.updatedAt,
+      patientAgeGroup: question.patientAgeGroup,
+      patientGender: question.patientGender,
+      patientHistory: question.patientHistory,
+      followups: question.followups,
+      assignments: question.assignments,
+      answers,
+    };
+  }
 
   /** Lowercased tags; empty means legacy profile (no filter — same as pre–expertise-queue behavior). */
   private async getDoctorNormalizedExpertise(doctorUserId: string): Promise<string[]> {
@@ -88,19 +143,27 @@ export class QuestionsService implements OnModuleInit {
   }
 
   async createQuestion(patientUserId: string, dto: CreateQuestionDto) {
+    const rawCat = dto.category?.trim();
+    const category =
+      rawCat && (CREATABLE_QUESTION_CATEGORIES as readonly string[]).includes(rawCat)
+        ? rawCat
+        : 'Other';
     const question = await this.questionRepo.save(
       this.questionRepo.create({
         patientUserId,
         title: dto.title,
         body: dto.body,
-        category: dto.category,
+        category,
+        patientAgeGroup: dto.patientAgeGroup?.trim() || null,
+        patientGender: dto.patientGender?.trim() || null,
+        patientHistory: dto.patientHistory?.trim() || null,
         status: QuestionStatus.OPEN,
       }),
     );
     const forumSlug = buildForumSlug(question.title, question.id);
     await this.questionRepo.update({ id: question.id }, { forumSlug });
     question.forumSlug = forumSlug;
-    await this.log(patientUserId, 'question.create', 'question', question.id, { category: dto.category });
+    await this.log(patientUserId, 'question.create', 'question', question.id, { category });
     return question;
   }
 
@@ -117,7 +180,11 @@ export class QuestionsService implements OnModuleInit {
   async getQuestionThread(questionId: string, requesterId: string, requesterRole: Role) {
     const question = await this.questionRepo.findOne({
       where: { id: questionId },
-      relations: { answers: true, followups: true, assignments: true },
+      relations: {
+        answers: { doctor: { doctorProfile: true } },
+        followups: true,
+        assignments: true,
+      },
     });
     if (!question) throw new NotFoundException('Question not found.');
     if (requesterRole === Role.PATIENT && question.patientUserId !== requesterId) {
@@ -127,7 +194,7 @@ export class QuestionsService implements OnModuleInit {
       const ok = await this.doctorMayAccessQuestion(requesterId, question);
       if (!ok) throw new NotFoundException('Question not found.');
     }
-    return question;
+    return this.sanitizeQuestionThread(question);
   }
 
   async addFollowup(questionId: string, patientUserId: string, dto: CreateFollowupDto) {
@@ -235,6 +302,37 @@ export class QuestionsService implements OnModuleInit {
     }
   }
 
+  private parseRecommendationItems(raw: string | undefined): string[] {
+    return String(raw ?? '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  private withDiabetesBlocks(category: string, answerHtml: string, recommendationPlan?: string): string {
+    const cat = String(category ?? '').trim().toLowerCase();
+    const recommendationItems = this.parseRecommendationItems(recommendationPlan);
+    const recommendationBlock =
+      recommendationItems.length === 0
+        ? ''
+        : `<section class="mb-action-plan"><h3>Recommended Action Plan:</h3><ol>${recommendationItems
+            .map((item) => `<li>${this.escapeHtml(item)}</li>`)
+            .join('')}</ol></section>`;
+    if (cat !== 'diabetes') return `${answerHtml}${recommendationBlock}`;
+    const hba1cBlock = `<section class="mb-hba1c-table"><h3>HbA1C Test - Normal, Prediabetes, And Diabetes Ranges</h3><table><thead><tr><th>Category</th><th>HbA1C (%)</th><th>Average Blood Glucose (mg/dL)</th><th>Average Blood Glucose (mmol/L)</th></tr></thead><tbody><tr><td>Normal</td><td>Below 5.7%</td><td>Below 117 mg/dL</td><td>Below 6.5 mmol/L</td></tr><tr><td>Prediabetes</td><td>5.7% to 6.4%</td><td>117 to 137 mg/dL</td><td>6.5 to 7.6 mmol/L</td></tr><tr><td>Diabetes</td><td>6.5% or higher</td><td>140 mg/dL or higher</td><td>7.8 mmol/L or higher</td></tr></tbody></table></section>`;
+    return `${answerHtml}${hba1cBlock}${recommendationBlock}`;
+  }
+
   async addDoctorAnswer(doctorUserId: string, questionId: string, dto: CreateAnswerDto) {
     this.assertAnswerHasBody(dto.answerText);
     return this.questionRepo.manager.transaction(async (em) => {
@@ -281,7 +379,7 @@ export class QuestionsService implements OnModuleInit {
         aRepo.create({
           doctorUserId,
           questionId,
-          answerText: dto.answerText,
+          answerText: this.withDiabetesBlocks(question.category, dto.answerText, dto.recommendationPlan),
           isPublished: true,
         }),
       );
@@ -293,12 +391,42 @@ export class QuestionsService implements OnModuleInit {
   }
 
   async adminListQuestions(status?: QuestionStatus, page = 1, limit = 20) {
-    return this.questionRepo.find({
+    const rows = await this.questionRepo.find({
       where: status ? { status } : {},
-      relations: { answers: true, assignments: true },
+      relations: { answers: true, assignments: true, patientUser: true },
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
+    });
+    return rows.map((q) => {
+      const p = q.patientUser;
+      return {
+        id: q.id,
+        title: q.title,
+        body: q.body,
+        category: q.category,
+        status: q.status,
+        patientUserId: q.patientUserId,
+        createdAt: q.createdAt,
+        patientAgeGroup: q.patientAgeGroup,
+        patientGender: q.patientGender,
+        patientHistory: q.patientHistory,
+        patient: p
+          ? {
+              id: p.id,
+              name: p.name,
+              email: p.email,
+              phone: p.phone,
+              signupLocation: p.signupLocation,
+              memberSince: p.createdAt,
+              accountUpdatedAt: p.updatedAt,
+              isActive: p.isActive,
+              signInMethod: p.googleSub ? ('google' as const) : ('phone_or_email' as const),
+            }
+          : null,
+        answers: q.answers,
+        assignments: q.assignments,
+      };
     });
   }
 
@@ -833,7 +961,10 @@ export class QuestionsService implements OnModuleInit {
             name: doc?.name ?? 'Verified doctor',
             titles: profile ? `${profile.degree} · ${profile.qualification}` : 'Medical reviewer',
             experienceYears: profile?.clinicalExperienceYears ?? null,
-            photoUrl: profile?.photoUrl ?? null,
+            photoUrl: normalizePublicUploadPhotoUrl(profile?.photoUrl ?? null),
+            bio: profile?.bio?.trim() || null,
+            branchName: profile?.branchName ?? null,
+            profileLink: profile?.profileLink ?? null,
           },
         };
       }),

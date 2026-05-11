@@ -23,6 +23,9 @@ let Question = class Question {
     title;
     body;
     category;
+    patientAgeGroup;
+    patientGender;
+    patientHistory;
     forumSlug;
     viewCount;
     status;
@@ -58,6 +61,18 @@ __decorate([
     (0, typeorm_1.Column)({ length: 80 }),
     __metadata("design:type", String)
 ], Question.prototype, "category", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'patient_age_group', type: 'varchar', length: 40, nullable: true }),
+    __metadata("design:type", Object)
+], Question.prototype, "patientAgeGroup", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'patient_gender', type: 'varchar', length: 40, nullable: true }),
+    __metadata("design:type", Object)
+], Question.prototype, "patientGender", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'patient_history', type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], Question.prototype, "patientHistory", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'forum_slug', type: 'varchar', length: 200, unique: true, nullable: true }),
     __metadata("design:type", Object)

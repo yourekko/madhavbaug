@@ -11,7 +11,11 @@ async function bootstrap() {
         (0, fs_1.mkdirSync)(uploadsRoot, { recursive: true });
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
-    app.enableCors({ origin: true, credentials: true });
+    app.enableCors({
+        origin: true,
+        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Forum-Viewer-Id'],
+    });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         transform: true,

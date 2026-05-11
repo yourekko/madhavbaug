@@ -41,11 +41,38 @@ export declare class AdminController {
             actorName: string | null;
         }[];
     }>;
-    questions(status?: QuestionStatus, page?: string, limit?: string): Promise<import("../entities/question.entity").Question[]>;
+    questions(status?: QuestionStatus, page?: string, limit?: string): Promise<{
+        id: string;
+        title: string;
+        body: string;
+        category: string;
+        status: QuestionStatus;
+        patientUserId: string;
+        createdAt: Date;
+        patientAgeGroup: string | null;
+        patientGender: string | null;
+        patientHistory: string | null;
+        patient: {
+            id: string;
+            name: string;
+            email: string | null;
+            phone: string | null;
+            signupLocation: string | null;
+            memberSince: Date;
+            accountUpdatedAt: Date;
+            isActive: boolean;
+            signInMethod: "google" | "phone_or_email";
+        } | null;
+        answers: import("../entities/answer.entity").Answer[] | undefined;
+        assignments: import("../entities/question-assignment.entity").QuestionAssignment[] | undefined;
+    }[]>;
     updateStatus(id: string, dto: UpdateQuestionStatusDto, user: JwtPayload): Promise<{
         ok: boolean;
     }>;
     assignDoctor(id: string, dto: AssignDoctorDto, user: JwtPayload): Promise<{
+        ok: boolean;
+    }>;
+    deleteQuestion(id: string, user: JwtPayload): Promise<{
         ok: boolean;
     }>;
     doctors(): Promise<import("../entities/user.entity").User[]>;

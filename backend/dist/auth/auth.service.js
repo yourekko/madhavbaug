@@ -56,6 +56,7 @@ const google_auth_library_1 = require("google-auth-library");
 const typeorm_2 = require("typeorm");
 const role_enum_1 = require("../common/enums/role.enum");
 const audit_log_entity_1 = require("../entities/audit-log.entity");
+const normalize_upload_url_1 = require("../common/utils/normalize-upload-url");
 const users_service_1 = require("../users/users.service");
 let AuthService = class AuthService {
     usersService;
@@ -82,6 +83,7 @@ let AuthService = class AuthService {
             phone: input.phone ?? null,
             role: role_enum_1.Role.PATIENT,
             passwordHash,
+            signupLocation: input.signupLocation?.trim() || null,
         });
         await this.recordAuthAudit(user.id, 'auth.signup', { role: user.role });
         return this.buildAuthResponse(user);
@@ -288,7 +290,7 @@ let AuthService = class AuthService {
                     qualification: profile.qualification,
                     clinicalExperienceYears: profile.clinicalExperienceYears,
                     bio: profile.bio,
-                    photoUrl: profile.photoUrl,
+                    photoUrl: (0, normalize_upload_url_1.normalizePublicUploadPhotoUrl)(profile.photoUrl),
                     branchName: profile.branchName,
                     profileLink: profile.profileLink,
                     whatsappNumber: profile.whatsappNumber,

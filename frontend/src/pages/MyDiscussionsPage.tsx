@@ -2,18 +2,54 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { FaClock, FaCommentDots, FaStethoscope } from 'react-icons/fa6';
 import AnswerHtml from '../components/AnswerHtml';
+import DoctorAnswerCard from '../components/DoctorAnswerCard';
+import type { DoctorAnswerCardDoctor } from '../components/DoctorAnswerCard';
 import { Seo } from '../components/Seo';
 import { useSession } from '../context/SessionContext';
 import { useToast } from '../context/ToastContext';
 import { apiRequest } from '../lib/api';
+import '../Forum.css';
 import './MyDiscussions.css';
+
+type ThreadDoctorProfile = {
+  degree?: string | null;
+  qualification?: string | null;
+  clinicalExperienceYears?: number | null;
+  bio?: string | null;
+  photoUrl?: string | null;
+  branchName?: string | null;
+  profileLink?: string | null;
+};
 
 type AnswerItem = {
   id: string;
   answerText: string;
   createdAt: string;
   isPublished?: boolean;
+  doctor?: {
+    name: string;
+    doctorProfile?: ThreadDoctorProfile | null;
+  } | null;
 };
+
+function threadAnswerToDoctorCardDoctor(a: AnswerItem): DoctorAnswerCardDoctor | null {
+  const d = a.doctor;
+  if (!d?.name) return null;
+  const p = d.doctorProfile;
+  const deg = p?.degree?.trim() ?? '';
+  const qual = p?.qualification?.trim() ?? '';
+  const titles =
+    deg && qual ? `${deg} · ${qual}` : deg || qual ? `${deg}${qual}` : 'Medical reviewer';
+  return {
+    name: d.name,
+    titles,
+    experienceYears: p?.clinicalExperienceYears ?? null,
+    photoUrl: p?.photoUrl ?? null,
+    bio: p?.bio?.trim() ? p.bio.trim() : null,
+    branchName: p?.branchName?.trim() ? p.branchName.trim() : null,
+    profileLink: p?.profileLink?.trim() ? p.profileLink.trim() : null,
+  };
+}
 
 type Question = {
   id: string;
@@ -229,11 +265,25 @@ export default function MyDiscussionsPage() {
                   </h3>
 
                   {hasDoctorAnswer ? (
-                    doctorReplies.map((a) => (
-                      <article key={a.id} className="md-answer-card">
-                        <AnswerHtml html={a.answerText} className="md-answer-html" />
-                      </article>
-                    ))
+                    doctorReplies.map((a) => {
+                      const doctor = threadAnswerToDoctorCardDoctor(a);
+                      return doctor ? (
+                        <DoctorAnswerCard
+                          key={a.id}
+                          answerId={a.id}
+                          createdAt={a.createdAt}
+                          answerHtml={a.answerText}
+                          questionCategory={selected.category}
+                          doctor={doctor}
+                          className="forum-doctor-card md-thread-doctor-card"
+                          answerHtmlClassName="forum-doctor-body-html md-answer-html"
+                        />
+                      ) : (
+                        <article key={a.id} className="md-answer-card">
+                          <AnswerHtml html={a.answerText} className="md-answer-html" />
+                        </article>
+                      );
+                    })
                   ) : (
                     <div className="md-waiting">
                       <div className="md-waiting-icon" aria-hidden>

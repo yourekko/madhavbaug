@@ -35,6 +35,16 @@ export class Question {
   @Column({ length: 80 })
   category!: string;
 
+  /** From ask form: age band (optional, stored for admin context). */
+  @Column({ name: 'patient_age_group', type: 'varchar', length: 40, nullable: true })
+  patientAgeGroup!: string | null;
+
+  @Column({ name: 'patient_gender', type: 'varchar', length: 40, nullable: true })
+  patientGender!: string | null;
+
+  @Column({ name: 'patient_history', type: 'text', nullable: true })
+  patientHistory!: string | null;
+
   /** SEO-friendly path segment under /forum/:category/questions/:slug */
   @Column({ name: 'forum_slug', type: 'varchar', length: 200, unique: true, nullable: true })
   forumSlug!: string | null;

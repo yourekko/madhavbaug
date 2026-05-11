@@ -137,6 +137,7 @@ export function AuthModal({
         phone: phone.trim(),
         email: email.trim() || undefined,
         password: signInPassword || 'Password@123',
+        signupLocation: location.trim(),
       });
       toast.success('Account created. You’re all set!');
       finishAuth();

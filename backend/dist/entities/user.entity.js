@@ -24,6 +24,7 @@ let User = class User {
     name;
     email;
     phone;
+    signupLocation;
     googleSub;
     passwordHash;
     isActive;
@@ -57,6 +58,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', unique: true, nullable: true, length: 20 }),
     __metadata("design:type", Object)
 ], User.prototype, "phone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'signup_location', type: 'varchar', nullable: true, length: 180 }),
+    __metadata("design:type", Object)
+], User.prototype, "signupLocation", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'google_sub', type: 'varchar', unique: true, nullable: true, length: 255 }),
     __metadata("design:type", Object)

@@ -1,4 +1,5 @@
 import { OnModuleInit } from '@nestjs/common';
+import type { Request } from 'express';
 import { Repository } from 'typeorm';
 import { QuestionStatus } from '../common/enums/question-status.enum';
 import { Role } from '../common/enums/role.enum';
@@ -21,6 +22,11 @@ export declare class QuestionsService implements OnModuleInit {
     private readonly auditRepo;
     private readonly usersService;
     constructor(questionRepo: Repository<Question>, followupRepo: Repository<QuestionFollowup>, answerRepo: Repository<Answer>, assignmentRepo: Repository<QuestionAssignment>, usersRepo: Repository<User>, auditRepo: Repository<AuditLog>, usersService: UsersService);
+    private isMysqlDuplicateKeyError;
+    private forumViewerKeyFromRequest;
+    private recordPublicForumQuestionViewIfNew;
+    private sanitizeDoctorProfile;
+    private sanitizeQuestionThread;
     private getDoctorNormalizedExpertise;
     private questionMatchesDoctorExpertise;
     private doctorMayAccessQuestion;
@@ -28,7 +34,50 @@ export declare class QuestionsService implements OnModuleInit {
     private backfillForumSlugs;
     createQuestion(patientUserId: string, dto: CreateQuestionDto): Promise<Question>;
     getMyQuestions(patientUserId: string, page?: number, limit?: number): Promise<Question[]>;
-    getQuestionThread(questionId: string, requesterId: string, requesterRole: Role): Promise<Question>;
+    getQuestionThread(questionId: string, requesterId: string, requesterRole: Role): Promise<{
+        id: string;
+        patientUserId: string;
+        title: string;
+        body: string;
+        category: string;
+        status: QuestionStatus;
+        forumSlug: string | null;
+        viewCount: number;
+        createdAt: Date;
+        updatedAt: Date;
+        patientAgeGroup: string | null;
+        patientGender: string | null;
+        patientHistory: string | null;
+        followups: QuestionFollowup[] | undefined;
+        assignments: QuestionAssignment[] | undefined;
+        answers: {
+            id: string;
+            questionId: string;
+            doctorUserId: string;
+            answerText: string;
+            isPublished: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            doctor: {
+                id: string;
+                name: string;
+                email: string | null;
+                phone: string | null;
+                role: Role;
+                doctorProfile: {
+                    degree: string;
+                    qualification: string;
+                    clinicalExperienceYears: number;
+                    bio: string;
+                    photoUrl: string | null;
+                    branchName: string | null;
+                    profileLink: string | null;
+                    expertiseTags: string[] | null;
+                    profileCompleted: boolean;
+                } | null;
+            } | null;
+        }[];
+    }>;
     addFollowup(questionId: string, patientUserId: string, dto: CreateFollowupDto): Promise<QuestionFollowup>;
     listDoctorQuestions(doctorUserId: string, status?: QuestionStatus, page?: number, limit?: number): Promise<{
         id: string;
@@ -41,12 +90,42 @@ export declare class QuestionsService implements OnModuleInit {
         canAnswer: boolean;
     }[]>;
     private assertAnswerHasBody;
+    private parseRecommendationItems;
+    private escapeHtml;
+    private withDiabetesBlocks;
     addDoctorAnswer(doctorUserId: string, questionId: string, dto: CreateAnswerDto): Promise<Answer>;
-    adminListQuestions(status?: QuestionStatus, page?: number, limit?: number): Promise<Question[]>;
+    adminListQuestions(status?: QuestionStatus, page?: number, limit?: number, category?: string): Promise<{
+        id: string;
+        title: string;
+        body: string;
+        category: string;
+        status: QuestionStatus;
+        patientUserId: string;
+        createdAt: Date;
+        patientAgeGroup: string | null;
+        patientGender: string | null;
+        patientHistory: string | null;
+        patient: {
+            id: string;
+            name: string;
+            email: string | null;
+            phone: string | null;
+            signupLocation: string | null;
+            memberSince: Date;
+            accountUpdatedAt: Date;
+            isActive: boolean;
+            signInMethod: "google" | "phone_or_email";
+        } | null;
+        answers: Answer[] | undefined;
+        assignments: QuestionAssignment[] | undefined;
+    }[]>;
     adminAssignDoctor(questionId: string, doctorUserId: string, adminUserId: string): Promise<{
         ok: boolean;
     }>;
     adminUpdateStatus(questionId: string, status: QuestionStatus, adminUserId: string): Promise<{
+        ok: boolean;
+    }>;
+    adminDeleteQuestion(questionId: string, superadminUserId: string): Promise<{
         ok: boolean;
     }>;
     adminDashboard(): Promise<{
@@ -104,6 +183,11 @@ export declare class QuestionsService implements OnModuleInit {
         patientName: string;
         email: string | null;
         phone: string | null;
+        signupLocation: string | null;
+        isActive: boolean;
+        memberSince: Date;
+        accountUpdatedAt: Date;
+        signInMethod: "google" | "phone_or_email";
         totalQuestions: number;
         questionsLast30Days: number;
         answeredQuestions: number;
@@ -177,6 +261,7 @@ export declare class QuestionsService implements OnModuleInit {
             categorySlug: string | null;
             questionSlug: string | null;
             title: string;
+            body: string;
             excerpt: string;
             views: number;
             answers: number;
@@ -189,6 +274,7 @@ export declare class QuestionsService implements OnModuleInit {
             categorySlug: string | null;
             questionSlug: string | null;
             title: string;
+            body: string;
             excerpt: string;
             views: number;
             answeredAt: Date;
@@ -206,6 +292,7 @@ export declare class QuestionsService implements OnModuleInit {
         items: {
             slug: string;
             title: string;
+            body: string;
             snippet: string;
             category: string;
             tag: string;
@@ -218,7 +305,7 @@ export declare class QuestionsService implements OnModuleInit {
         page: number;
         limit: number;
     }>;
-    getPublicForumQuestionDetail(categorySlug: string, questionSlugOrId: string): Promise<{
+    getPublicForumQuestionDetail(categorySlug: string, questionSlugOrId: string, req: Request, viewerHeader?: string): Promise<{
         slug: string;
         title: string;
         body: string;
@@ -235,6 +322,9 @@ export declare class QuestionsService implements OnModuleInit {
                 titles: string;
                 experienceYears: number | null;
                 photoUrl: string | null;
+                bio: string | null;
+                branchName: string | null;
+                profileLink: string | null;
             };
         }[];
         related: {

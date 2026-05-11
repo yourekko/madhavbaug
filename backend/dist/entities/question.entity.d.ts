@@ -10,6 +10,9 @@ export declare class Question {
     title: string;
     body: string;
     category: string;
+    patientAgeGroup: string | null;
+    patientGender: string | null;
+    patientHistory: string | null;
     forumSlug: string | null;
     viewCount: number;
     status: QuestionStatus;

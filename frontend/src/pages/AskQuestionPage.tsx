@@ -35,11 +35,11 @@ const sidebarDoctors = [
 ];
 
 const popularTopics = [
-  'Heart Disease',
-  'Diabetes Management',
-  'Blood Pressure',
+  'Heart',
+  'Diabetes',
+  'Hypertension',
   'Weight Loss',
-  'Lifestyle & Diet',
+  'Thyroid',
 ];
 
 const faqItems = [
@@ -88,7 +88,8 @@ export default function AskQuestionPage() {
   }, [location.state]);
 
   const qLen = question.length;
-  const canSubmit = qLen >= MIN_Q && category !== categories[0] && ageGroup !== ageGroups[0] && gender !== genders[0];
+  /** Only the question text is required — category / age / gender are optional to reduce form abandonment. */
+  const canSubmit = qLen >= MIN_Q;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -109,7 +110,10 @@ export default function AskQuestionPage() {
           body: JSON.stringify({
             title: question.trim().slice(0, MAX_TITLE_LEN) || 'Health Question',
             body: question,
-            category,
+            ...(category !== categories[0] ? { category } : {}),
+            patientAgeGroup: ageGroup === ageGroups[0] ? undefined : ageGroup,
+            patientGender: gender === genders[0] ? undefined : gender,
+            patientHistory: history.trim() || undefined,
           }),
         },
         token,
@@ -156,7 +160,7 @@ export default function AskQuestionPage() {
 
                 <form className="ask-form" onSubmit={handleSubmit} noValidate>
                   <label className="ask-label">
-                    Your Health Question <span className="req">*</span>
+                    Your Health Question
                     <textarea
                       className="ask-textarea"
                       rows={6}
@@ -166,15 +170,15 @@ export default function AskQuestionPage() {
                       aria-describedby="q-counter q-hint"
                     />
                     <div className="ask-field-meta" id="q-counter">
-                      <span className={qLen < MIN_Q && qLen > 0 ? 'warn' : ''}>
+                      <span className={qLen > 0 && qLen < MIN_Q ? 'warn' : ''}>
                         {qLen}/{MAX_Q}
                       </span>
-                      <span id="q-hint">Minimum {MIN_Q} characters</span>
+                      <span id="q-hint">Add at least {MIN_Q} characters so a doctor can reply helpfully</span>
                     </div>
                   </label>
 
                   <label className="ask-label">
-                    Medical Category <span className="req">*</span>
+                    Medical Category <span className="optional">(optional)</span>
                     <div className="ask-select-wrap">
                       <select className="ask-select" value={category} onChange={(e) => setCategory(e.target.value)}>
                         {categories.map((c) => (
@@ -189,7 +193,7 @@ export default function AskQuestionPage() {
 
                   <div className="ask-row-2">
                     <label className="ask-label">
-                      Age Group <span className="req">*</span>
+                      Age Group <span className="optional">(optional)</span>
                       <div className="ask-select-wrap">
                         <select className="ask-select" value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)}>
                           {ageGroups.map((a) => (
@@ -202,7 +206,7 @@ export default function AskQuestionPage() {
                       </div>
                     </label>
                     <label className="ask-label">
-                      Gender <span className="req">*</span>
+                      Gender <span className="optional">(optional)</span>
                       <div className="ask-select-wrap">
                         <select className="ask-select" value={gender} onChange={(e) => setGender(e.target.value)}>
                           {genders.map((g) => (

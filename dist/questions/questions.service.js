@@ -25,7 +25,9 @@ const question_followup_entity_1 = require("../entities/question-followup.entity
 const question_entity_1 = require("../entities/question.entity");
 const user_entity_1 = require("../entities/user.entity");
 const users_service_1 = require("../users/users.service");
+const normalize_upload_url_1 = require("../common/utils/normalize-upload-url");
 const slugify_1 = require("../common/utils/slugify");
+const create_question_dto_1 = require("./dto/create-question.dto");
 const forum_category_map_1 = require("./forum-category-map");
 let QuestionsService = class QuestionsService {
     questionRepo;
@@ -44,6 +46,58 @@ let QuestionsService = class QuestionsService {
         this.auditRepo = auditRepo;
         this.usersService = usersService;
     }
+    sanitizeDoctorProfile(profile) {
+        return {
+            degree: profile.degree,
+            qualification: profile.qualification,
+            clinicalExperienceYears: profile.clinicalExperienceYears,
+            bio: profile.bio,
+            photoUrl: (0, normalize_upload_url_1.normalizePublicUploadPhotoUrl)(profile.photoUrl),
+            branchName: profile.branchName,
+            profileLink: profile.profileLink,
+            expertiseTags: profile.expertiseTags,
+            profileCompleted: profile.profileCompleted,
+        };
+    }
+    sanitizeQuestionThread(question) {
+        const answers = (question.answers ?? []).map((a) => ({
+            id: a.id,
+            questionId: a.questionId,
+            doctorUserId: a.doctorUserId,
+            answerText: a.answerText,
+            isPublished: a.isPublished,
+            createdAt: a.createdAt,
+            updatedAt: a.updatedAt,
+            doctor: a.doctor
+                ? {
+                    id: a.doctor.id,
+                    name: a.doctor.name,
+                    email: a.doctor.email,
+                    phone: a.doctor.phone,
+                    role: a.doctor.role,
+                    doctorProfile: a.doctor.doctorProfile ? this.sanitizeDoctorProfile(a.doctor.doctorProfile) : null,
+                }
+                : null,
+        }));
+        return {
+            id: question.id,
+            patientUserId: question.patientUserId,
+            title: question.title,
+            body: question.body,
+            category: question.category,
+            status: question.status,
+            forumSlug: question.forumSlug,
+            viewCount: question.viewCount,
+            createdAt: question.createdAt,
+            updatedAt: question.updatedAt,
+            patientAgeGroup: question.patientAgeGroup,
+            patientGender: question.patientGender,
+            patientHistory: question.patientHistory,
+            followups: question.followups,
+            assignments: question.assignments,
+            answers,
+        };
+    }
     async getDoctorNormalizedExpertise(doctorUserId) {
         const profile = await this.usersService.getDoctorProfileByUserId(doctorUserId);
         const tags = profile?.expertiseTags ?? [];
@@ -60,15 +114,13 @@ let QuestionsService = class QuestionsService {
         const assigned = await this.assignmentRepo.findOne({ where: { questionId, doctorUserId } });
         if (assigned)
             return true;
-        const hasPublishedAnswer = await this.answerRepo.exist({
-            where: { questionId, isPublished: true },
-        });
-        const inOpenPool = !hasPublishedAnswer &&
-            (question.status === question_status_enum_1.QuestionStatus.OPEN || question.status === question_status_enum_1.QuestionStatus.ASSIGNED);
-        if (!inOpenPool)
-            return false;
         const assignRows = await this.assignmentRepo.find({ where: { questionId } });
         if (assignRows.some((a) => a.doctorUserId !== doctorUserId))
+            return false;
+        const inPool = question.status === question_status_enum_1.QuestionStatus.OPEN ||
+            question.status === question_status_enum_1.QuestionStatus.ASSIGNED ||
+            question.status === question_status_enum_1.QuestionStatus.ANSWERED;
+        if (!inPool)
             return false;
         const expertise = await this.getDoctorNormalizedExpertise(doctorUserId);
         return this.questionMatchesDoctorExpertise(question.category, expertise);
@@ -87,17 +139,24 @@ let QuestionsService = class QuestionsService {
         }
     }
     async createQuestion(patientUserId, dto) {
+        const rawCat = dto.category?.trim();
+        const category = rawCat && create_question_dto_1.CREATABLE_QUESTION_CATEGORIES.includes(rawCat)
+            ? rawCat
+            : 'Other';
         const question = await this.questionRepo.save(this.questionRepo.create({
             patientUserId,
             title: dto.title,
             body: dto.body,
-            category: dto.category,
+            category,
+            patientAgeGroup: dto.patientAgeGroup?.trim() || null,
+            patientGender: dto.patientGender?.trim() || null,
+            patientHistory: dto.patientHistory?.trim() || null,
             status: question_status_enum_1.QuestionStatus.OPEN,
         }));
         const forumSlug = (0, slugify_1.buildForumSlug)(question.title, question.id);
         await this.questionRepo.update({ id: question.id }, { forumSlug });
         question.forumSlug = forumSlug;
-        await this.log(patientUserId, 'question.create', 'question', question.id, { category: dto.category });
+        await this.log(patientUserId, 'question.create', 'question', question.id, { category });
         return question;
     }
     async getMyQuestions(patientUserId, page = 1, limit = 20) {
@@ -112,7 +171,11 @@ let QuestionsService = class QuestionsService {
     async getQuestionThread(questionId, requesterId, requesterRole) {
         const question = await this.questionRepo.findOne({
             where: { id: questionId },
-            relations: { answers: true, followups: true, assignments: true },
+            relations: {
+                answers: { doctor: { doctorProfile: true } },
+                followups: true,
+                assignments: true,
+            },
         });
         if (!question)
             throw new common_1.NotFoundException('Question not found.');
@@ -124,7 +187,7 @@ let QuestionsService = class QuestionsService {
             if (!ok)
                 throw new common_1.NotFoundException('Question not found.');
         }
-        return question;
+        return this.sanitizeQuestionThread(question);
     }
     async addFollowup(questionId, patientUserId, dto) {
         const question = await this.questionRepo.findOne({ where: { id: questionId } });
@@ -142,13 +205,13 @@ let QuestionsService = class QuestionsService {
         return followup;
     }
     async listDoctorQuestions(doctorUserId, status, page = 1, limit = 20) {
-        const publishedRows = await this.answerRepo
+        const myPublishedRows = await this.answerRepo
             .createQueryBuilder('a')
             .select('a.question_id', 'questionId')
-            .where('a.is_published = :pub', { pub: true })
-            .distinct(true)
+            .where('a.doctor_user_id = :docId', { docId: doctorUserId })
+            .andWhere('a.is_published = :pub', { pub: true })
             .getRawMany();
-        const answeredQuestionIds = new Set(publishedRows.map((r) => r.questionId));
+        const myPublishedQuestionIds = new Set(myPublishedRows.map((r) => r.questionId));
         const normalizedExpertise = await this.getDoctorNormalizedExpertise(doctorUserId);
         const assignments = await this.assignmentRepo.find({
             where: { doctorUserId },
@@ -157,7 +220,11 @@ let QuestionsService = class QuestionsService {
         });
         const assignedQuestions = assignments.map((a) => a.question).filter(Boolean);
         const poolCandidates = await this.questionRepo.find({
-            where: [{ status: question_status_enum_1.QuestionStatus.OPEN }, { status: question_status_enum_1.QuestionStatus.ASSIGNED }],
+            where: [
+                { status: question_status_enum_1.QuestionStatus.OPEN },
+                { status: question_status_enum_1.QuestionStatus.ASSIGNED },
+                { status: question_status_enum_1.QuestionStatus.ANSWERED },
+            ],
             order: { createdAt: 'DESC' },
             take: 500,
         });
@@ -177,7 +244,7 @@ let QuestionsService = class QuestionsService {
             set.add(row.doctorUserId);
         }
         const pool = poolCandidates.filter((q) => {
-            if (answeredQuestionIds.has(q.id))
+            if (myPublishedQuestionIds.has(q.id))
                 return false;
             const assignees = assigneesByQuestion.get(q.id);
             if (assignees?.has(doctorUserId))
@@ -205,7 +272,7 @@ let QuestionsService = class QuestionsService {
             status: q.status,
             createdAt: q.createdAt,
             assignedToMe: assignedIds.has(q.id),
-            canAnswer: !answeredQuestionIds.has(q.id),
+            canAnswer: !myPublishedQuestionIds.has(q.id),
         }));
     }
     assertAnswerHasBody(html) {
@@ -218,6 +285,34 @@ let QuestionsService = class QuestionsService {
         if (text.length < 10) {
             throw new common_1.BadRequestException('Please write at least a short answer (or attach an image).');
         }
+    }
+    parseRecommendationItems(raw) {
+        return String(raw ?? '')
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .slice(0, 12);
+    }
+    escapeHtml(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+    withDiabetesBlocks(category, answerHtml, recommendationPlan) {
+        const cat = String(category ?? '').trim().toLowerCase();
+        const recommendationItems = this.parseRecommendationItems(recommendationPlan);
+        const recommendationBlock = recommendationItems.length === 0
+            ? ''
+            : `<section class="mb-action-plan"><h3>Recommended Action Plan:</h3><ol>${recommendationItems
+                .map((item) => `<li>${this.escapeHtml(item)}</li>`)
+                .join('')}</ol></section>`;
+        if (cat !== 'diabetes')
+            return `${answerHtml}${recommendationBlock}`;
+        const hba1cBlock = `<section class="mb-hba1c-table"><h3>HbA1C Test - Normal, Prediabetes, And Diabetes Ranges</h3><table><thead><tr><th>Category</th><th>HbA1C (%)</th><th>Average Blood Glucose (mg/dL)</th><th>Average Blood Glucose (mmol/L)</th></tr></thead><tbody><tr><td>Normal</td><td>Below 5.7%</td><td>Below 117 mg/dL</td><td>Below 6.5 mmol/L</td></tr><tr><td>Prediabetes</td><td>5.7% to 6.4%</td><td>117 to 137 mg/dL</td><td>6.5 to 7.6 mmol/L</td></tr><tr><td>Diabetes</td><td>6.5% or higher</td><td>140 mg/dL or higher</td><td>7.8 mmol/L or higher</td></tr></tbody></table></section>`;
+        return `${answerHtml}${hba1cBlock}${recommendationBlock}`;
     }
     async addDoctorAnswer(doctorUserId, questionId, dto) {
         this.assertAnswerHasBody(dto.answerText);
@@ -232,13 +327,17 @@ let QuestionsService = class QuestionsService {
                 .getOne();
             if (!question)
                 throw new common_1.NotFoundException('Question not found.');
-            const publishedCount = await aRepo.count({ where: { questionId, isPublished: true } });
-            if (publishedCount > 0) {
-                throw new common_1.ConflictException('This question has already been answered by another doctor.');
+            const myPublishedCount = await aRepo.count({
+                where: { questionId, doctorUserId, isPublished: true },
+            });
+            if (myPublishedCount > 0) {
+                throw new common_1.ConflictException('You have already published an answer on this question.');
             }
             const assigned = await asRepo.findOne({ where: { doctorUserId, questionId } });
             if (!assigned) {
-                const inOpenPool = question.status === question_status_enum_1.QuestionStatus.OPEN || question.status === question_status_enum_1.QuestionStatus.ASSIGNED;
+                const inOpenPool = question.status === question_status_enum_1.QuestionStatus.OPEN ||
+                    question.status === question_status_enum_1.QuestionStatus.ASSIGNED ||
+                    question.status === question_status_enum_1.QuestionStatus.ANSWERED;
                 if (!inOpenPool) {
                     throw new common_1.ForbiddenException('You cannot answer this question.');
                 }
@@ -254,28 +353,51 @@ let QuestionsService = class QuestionsService {
             const answer = await aRepo.save(aRepo.create({
                 doctorUserId,
                 questionId,
-                answerText: dto.answerText,
+                answerText: this.withDiabetesBlocks(question.category, dto.answerText, dto.recommendationPlan),
                 isPublished: true,
             }));
             await qRepo.update({ id: questionId }, { status: question_status_enum_1.QuestionStatus.ANSWERED });
-            if (!assigned) {
-                await asRepo.save(asRepo.create({
-                    questionId,
-                    doctorUserId,
-                    assignedBy: null,
-                }));
-            }
             await this.log(doctorUserId, 'answer.create', 'question', questionId, { answerId: answer.id });
             return answer;
         });
     }
     async adminListQuestions(status, page = 1, limit = 20) {
-        return this.questionRepo.find({
+        const rows = await this.questionRepo.find({
             where: status ? { status } : {},
-            relations: { answers: true, assignments: true },
+            relations: { answers: true, assignments: true, patientUser: true },
             order: { createdAt: 'DESC' },
             skip: (page - 1) * limit,
             take: limit,
+        });
+        return rows.map((q) => {
+            const p = q.patientUser;
+            return {
+                id: q.id,
+                title: q.title,
+                body: q.body,
+                category: q.category,
+                status: q.status,
+                patientUserId: q.patientUserId,
+                createdAt: q.createdAt,
+                patientAgeGroup: q.patientAgeGroup,
+                patientGender: q.patientGender,
+                patientHistory: q.patientHistory,
+                patient: p
+                    ? {
+                        id: p.id,
+                        name: p.name,
+                        email: p.email,
+                        phone: p.phone,
+                        signupLocation: p.signupLocation,
+                        memberSince: p.createdAt,
+                        accountUpdatedAt: p.updatedAt,
+                        isActive: p.isActive,
+                        signInMethod: p.googleSub ? 'google' : 'phone_or_email',
+                    }
+                    : null,
+                answers: q.answers,
+                assignments: q.assignments,
+            };
         });
     }
     async adminAssignDoctor(questionId, doctorUserId, adminUserId) {
@@ -305,6 +427,17 @@ let QuestionsService = class QuestionsService {
             throw new common_1.NotFoundException('Question not found.');
         await this.questionRepo.update({ id: questionId }, { status });
         await this.log(adminUserId, 'question.status.update', 'question', questionId, { status });
+        return { ok: true };
+    }
+    async adminDeleteQuestion(questionId, superadminUserId) {
+        const question = await this.questionRepo.findOne({ where: { id: questionId } });
+        if (!question)
+            throw new common_1.NotFoundException('Question not found.');
+        await this.questionRepo.delete({ id: questionId });
+        await this.log(superadminUserId, 'question.delete', 'question', questionId, {
+            category: question.category,
+            forumSlug: question.forumSlug,
+        });
         return { ok: true };
     }
     async adminDashboard() {
@@ -538,6 +671,7 @@ let QuestionsService = class QuestionsService {
                     categorySlug: this.forumSlugForCategory(q.category),
                     questionSlug: q.forumSlug,
                     title: q.title,
+                    body: q.body,
                     excerpt: this.snippetText(q.body),
                     views: q.viewCount ?? 0,
                     answers: answerCount,
@@ -555,6 +689,7 @@ let QuestionsService = class QuestionsService {
                     categorySlug: this.forumSlugForCategory(q.category),
                     questionSlug: q.forumSlug,
                     title: q.title,
+                    body: q.body,
                     excerpt: this.snippetText(q.body),
                     views: q.viewCount ?? 0,
                     answeredAt: latestAnswer?.createdAt ?? q.createdAt,
@@ -641,6 +776,7 @@ let QuestionsService = class QuestionsService {
             return {
                 slug: q.forumSlug,
                 title: q.title,
+                body: q.body,
                 snippet: this.snippetText(q.body),
                 category: q.category,
                 tag: q.category,
@@ -723,7 +859,10 @@ let QuestionsService = class QuestionsService {
                         name: doc?.name ?? 'Verified doctor',
                         titles: profile ? `${profile.degree} · ${profile.qualification}` : 'Medical reviewer',
                         experienceYears: profile?.clinicalExperienceYears ?? null,
-                        photoUrl: profile?.photoUrl ?? null,
+                        photoUrl: (0, normalize_upload_url_1.normalizePublicUploadPhotoUrl)(profile?.photoUrl ?? null),
+                        bio: profile?.bio?.trim() || null,
+                        branchName: profile?.branchName ?? null,
+                        profileLink: profile?.profileLink ?? null,
                     },
                 };
             }),

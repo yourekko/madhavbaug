@@ -1,7 +1,14 @@
+# Hostinger — SPA files live in /forum/ (same folder as this file after upload).
+# Asset URLs use /forum/assets/… from Vite VITE_BASE_PATH=/forum/
+
+<IfModule mod_negotiation.c>
+  Options -MultiViews
+</IfModule>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteBase /forum/
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . index.html [L]
+  RewriteRule ^ index.html [L]
 </IfModule>

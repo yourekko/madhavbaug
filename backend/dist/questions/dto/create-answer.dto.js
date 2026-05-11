@@ -13,6 +13,7 @@ exports.CreateAnswerDto = void 0;
 const class_validator_1 = require("class-validator");
 class CreateAnswerDto {
     answerText;
+    recommendationPlan;
 }
 exports.CreateAnswerDto = CreateAnswerDto;
 __decorate([
@@ -21,4 +22,10 @@ __decorate([
     (0, class_validator_1.MaxLength)(250000),
     __metadata("design:type", String)
 ], CreateAnswerDto.prototype, "answerText", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(4000),
+    __metadata("design:type", String)
+], CreateAnswerDto.prototype, "recommendationPlan", void 0);
 //# sourceMappingURL=create-answer.dto.js.map

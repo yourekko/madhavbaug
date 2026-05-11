@@ -1,4 +1,3 @@
-import type { Request } from 'express';
 import { Role } from '../common/enums/role.enum';
 import { AuthService } from './auth.service';
 import { CompleteDoctorProfileDto } from './dto/complete-doctor-profile.dto';
@@ -71,7 +70,7 @@ export declare class AuthController {
             needsDoctorProfile: boolean;
         };
     }>;
-    uploadDoctorPhoto(file: Express.Multer.File, req: Request): {
+    uploadDoctorPhoto(file: Express.Multer.File): {
         url: string;
     };
     login(dto: LoginDto): Promise<{

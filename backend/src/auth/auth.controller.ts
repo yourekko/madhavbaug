@@ -5,7 +5,6 @@ import {
   Get,
   Patch,
   Post,
-  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -14,7 +13,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { randomUUID } from 'crypto';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
@@ -81,11 +79,10 @@ export class AuthController {
       },
     }),
   )
-  uploadDoctorPhoto(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  uploadDoctorPhoto(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No image file received.');
-    const host = req.get('host');
-    const proto = req.protocol;
-    return { url: `${proto}://${host}/uploads/${file.filename}` };
+    // Relative path so the DB is not tied to Host / proxy; clients resolve with their API base.
+    return { url: `/uploads/${file.filename}` };
   }
 
   @Post('login')

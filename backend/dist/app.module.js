@@ -16,6 +16,7 @@ const app_service_1 = require("./app.service");
 const answer_entity_1 = require("./entities/answer.entity");
 const audit_log_entity_1 = require("./entities/audit-log.entity");
 const doctor_profile_entity_1 = require("./entities/doctor-profile.entity");
+const forum_question_view_dedupe_entity_1 = require("./entities/forum-question-view-dedupe.entity");
 const question_assignment_entity_1 = require("./entities/question-assignment.entity");
 const question_followup_entity_1 = require("./entities/question-followup.entity");
 const question_entity_1 = require("./entities/question.entity");
@@ -42,7 +43,17 @@ exports.AppModule = AppModule = __decorate([
                     username: config.get('DB_USER', 'root'),
                     password: config.get('DB_PASSWORD', ''),
                     database: config.get('DB_NAME', 'madhavbaug'),
-                    entities: [user_entity_1.User, doctor_profile_entity_1.DoctorProfile, question_entity_1.Question, question_assignment_entity_1.QuestionAssignment, answer_entity_1.Answer, question_followup_entity_1.QuestionFollowup, seo_page_entity_1.SeoPage, audit_log_entity_1.AuditLog],
+                    entities: [
+                        user_entity_1.User,
+                        doctor_profile_entity_1.DoctorProfile,
+                        question_entity_1.Question,
+                        question_assignment_entity_1.QuestionAssignment,
+                        answer_entity_1.Answer,
+                        question_followup_entity_1.QuestionFollowup,
+                        seo_page_entity_1.SeoPage,
+                        audit_log_entity_1.AuditLog,
+                        forum_question_view_dedupe_entity_1.ForumQuestionViewDedupe,
+                    ],
                     synchronize: config.get('DB_SYNC', 'true') === 'true',
                 }),
             }),

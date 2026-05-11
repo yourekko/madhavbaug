@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { Answer } from './entities/answer.entity';
 import { AuditLog } from './entities/audit-log.entity';
 import { DoctorProfile } from './entities/doctor-profile.entity';
+import { ForumQuestionViewDedupe } from './entities/forum-question-view-dedupe.entity';
 import { QuestionAssignment } from './entities/question-assignment.entity';
 import { QuestionFollowup } from './entities/question-followup.entity';
 import { Question } from './entities/question.entity';
@@ -30,7 +31,17 @@ import { UsersModule } from './users/users.module';
         username: config.get<string>('DB_USER', 'root'),
         password: config.get<string>('DB_PASSWORD', ''),
         database: config.get<string>('DB_NAME', 'madhavbaug'),
-        entities: [User, DoctorProfile, Question, QuestionAssignment, Answer, QuestionFollowup, SeoPage, AuditLog],
+        entities: [
+          User,
+          DoctorProfile,
+          Question,
+          QuestionAssignment,
+          Answer,
+          QuestionFollowup,
+          SeoPage,
+          AuditLog,
+          ForumQuestionViewDedupe,
+        ],
         synchronize: config.get<string>('DB_SYNC', 'true') === 'true',
       }),
     }),

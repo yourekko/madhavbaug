@@ -204,6 +204,10 @@
   color: #475569;
 }
 
+.md-thread-doctor-card {
+  margin-bottom: 16px;
+}
+
 .md-answer-card {
   background: linear-gradient(180deg, #f8fcfb, #f1f9f7);
   border: 1px solid #d1fae5;

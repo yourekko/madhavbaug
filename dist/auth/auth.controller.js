@@ -35,12 +35,10 @@ let AuthController = class AuthController {
     signupDoctor(dto) {
         return this.authService.signupDoctor(dto);
     }
-    uploadDoctorPhoto(file, req) {
+    uploadDoctorPhoto(file) {
         if (!file)
             throw new common_1.BadRequestException('No image file received.');
-        const host = req.get('host');
-        const proto = req.protocol;
-        return { url: `${proto}://${host}/uploads/${file.filename}` };
+        return { url: `/uploads/${file.filename}` };
     }
     login(dto) {
         return this.authService.login(dto);
@@ -84,9 +82,8 @@ __decorate([
         },
     })),
     __param(0, (0, common_1.UploadedFile)()),
-    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "uploadDoctorPhoto", null);
 __decorate([

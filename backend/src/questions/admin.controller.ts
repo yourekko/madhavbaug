@@ -26,8 +26,13 @@ export class AdminController {
   }
 
   @Get('questions')
-  questions(@Query('status') status?: QuestionStatus, @Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.questionsService.adminListQuestions(status, Number(page ?? 1), Number(limit ?? 20));
+  questions(
+    @Query('status') status?: QuestionStatus,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.questionsService.adminListQuestions(status, Number(page ?? 1), Number(limit ?? 20), category);
   }
 
   @Patch('questions/:id/status')

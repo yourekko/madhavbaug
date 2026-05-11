@@ -3,4 +3,5 @@ export declare class PatientSignupDto {
     email?: string;
     phone?: string;
     password: string;
+    signupLocation?: string;
 }

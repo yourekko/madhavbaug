@@ -1,3 +1,4 @@
+import type { Request } from 'express';
 import { ForumReportDto } from './dto/forum-report.dto';
 import { QuestionsService } from './questions.service';
 export declare class ForumPublicController {
@@ -28,6 +29,7 @@ export declare class ForumPublicController {
             categorySlug: string | null;
             questionSlug: string | null;
             title: string;
+            body: string;
             excerpt: string;
             views: number;
             answers: number;
@@ -40,6 +42,7 @@ export declare class ForumPublicController {
             categorySlug: string | null;
             questionSlug: string | null;
             title: string;
+            body: string;
             excerpt: string;
             views: number;
             answeredAt: Date;
@@ -53,6 +56,7 @@ export declare class ForumPublicController {
         items: {
             slug: string;
             title: string;
+            body: string;
             snippet: string;
             category: string;
             tag: string;
@@ -65,7 +69,7 @@ export declare class ForumPublicController {
         page: number;
         limit: number;
     }>;
-    detail(categorySlug: string, questionSlug: string): Promise<{
+    detail(req: Request, viewerId: string | undefined, categorySlug: string, questionSlug: string): Promise<{
         slug: string;
         title: string;
         body: string;
@@ -82,6 +86,9 @@ export declare class ForumPublicController {
                 titles: string;
                 experienceYears: number | null;
                 photoUrl: string | null;
+                bio: string | null;
+                branchName: string | null;
+                profileLink: string | null;
             };
         }[];
         related: {

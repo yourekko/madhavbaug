@@ -11,6 +11,7 @@ export declare class User {
     name: string;
     email: string | null;
     phone: string | null;
+    signupLocation: string | null;
     googleSub: string | null;
     passwordHash: string;
     isActive: boolean;

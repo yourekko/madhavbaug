@@ -8,6 +8,7 @@ type CreateUserInput = {
     role: User['role'];
     passwordHash: string;
     googleSub?: string | null;
+    signupLocation?: string | null;
 };
 type CreateDoctorProfileInput = {
     userId: string;

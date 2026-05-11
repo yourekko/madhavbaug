@@ -11,7 +11,11 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
-  app.enableCors({ origin: true, credentials: true });
+  app.enableCors({
+    origin: true,
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Forum-Viewer-Id'],
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

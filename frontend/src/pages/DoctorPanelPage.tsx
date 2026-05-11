@@ -46,6 +46,7 @@ export default function DoctorPanelPage() {
   const [selected, setSelected] = useState<DoctorQueueItem | null>(null);
   const [thread, setThread] = useState<DoctorThread | null>(null);
   const [answerText, setAnswerText] = useState('');
+  const [recommendationPlan, setRecommendationPlan] = useState('');
   const [draftKey, setDraftKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loadingList, setLoadingList] = useState(false);
@@ -119,10 +120,17 @@ export default function DoctorPanelPage() {
     try {
       await apiRequest(
         `/doctor/questions/${selected.id}/answers`,
-        { method: 'POST', body: JSON.stringify({ answerText: answerText.trim() }) },
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            answerText: answerText.trim(),
+            recommendationPlan: recommendationPlan.trim() || undefined,
+          }),
+        },
         token,
       );
       setAnswerText('');
+      setRecommendationPlan('');
       setDraftKey((k) => k + 1);
       toast.success('Your answer was published.');
       await loadQueue();
@@ -310,6 +318,22 @@ export default function DoctorPanelPage() {
                       onChange={setAnswerText}
                       onUploadError={(m) => toast.error(m)}
                     />
+                    <label className="dp-reco-field">
+                      <span className="dp-reco-label">
+                        Recommendations (one line per point)
+                        {thread.category === 'Diabetes' ? ' - shown as action plan' : ''}
+                      </span>
+                      <textarea
+                        className="dp-reco-textarea"
+                        placeholder="Example:
+Continue current medications
+Check fasting sugar daily
+Walk 30 minutes at least 5 days/week"
+                        value={recommendationPlan}
+                        onChange={(e) => setRecommendationPlan(e.target.value)}
+                        maxLength={4000}
+                      />
+                    </label>
                     <button type="submit" className="ask-submit" disabled={!answerHasMeaningfulContent(answerText)}>
                       Publish answer
                     </button>

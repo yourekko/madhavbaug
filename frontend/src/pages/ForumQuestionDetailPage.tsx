@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { FaBookmark } from 'react-icons/fa6';
-import AnswerHtml from '../components/AnswerHtml';
+import DoctorAnswerCard from '../components/DoctorAnswerCard';
 import { Seo } from '../components/Seo';
 import { useToast } from '../context/ToastContext';
 import {
@@ -14,7 +14,7 @@ import { fetchForumQuestionDetail, submitForumReport, type ForumDetailResponse }
 import { formatShortAgo } from '../lib/formatShortAgo';
 import { isForumQuestionSaved, toggleForumSaved } from '../lib/forumSavedQuestions';
 import '../Forum.css';
-import { FiArrowRight, FiBookmark, FiCheck, FiEye, FiFlag, FiMessageCircle, FiShare2 } from 'react-icons/fi';
+import { FiArrowRight, FiBookmark, FiEye, FiFlag, FiMessageCircle, FiShare2 } from 'react-icons/fi';
 
 function truncateMeta(text: string, max: number) {
   const t = text.replace(/\s+/g, ' ').trim();
@@ -309,43 +309,14 @@ export function ForumQuestionDetailPage() {
           ) : null}
 
           {detail.answers.map((ans) => (
-            <article key={ans.id} className="forum-doctor-card">
-              <div className="forum-reviewed-badge">
-                <FiCheck aria-hidden /> Medically reviewed
-              </div>
-              <div className="forum-doctor-label">Doctor’s answer</div>
-              <div className="forum-doctor-profile">
-                <div
-                  className="forum-doctor-photo"
-                  style={
-                    ans.doctor.photoUrl
-                      ? { backgroundImage: `url(${ans.doctor.photoUrl})`, backgroundSize: 'cover' }
-                      : undefined
-                  }
-                  aria-hidden
-                />
-                <div>
-                  <div className="forum-doctor-name">{ans.doctor.name}</div>
-                  <div className="forum-doctor-titles">{ans.doctor.titles}</div>
-                  <div className="forum-doctor-verify">
-                    <span>
-                      <FiCheck className="forum-check" aria-hidden /> Verified expert
-                    </span>
-                    {ans.doctor.experienceYears != null ? (
-                      <span className="forum-doctor-exp">
-                        Clinical experience: {ans.doctor.experienceYears} years
-                      </span>
-                    ) : null}
-                  </div>
-                  <div style={{ marginTop: 6, fontSize: 12, color: '#94a3b8' }}>
-                    Answered {formatShortAgo(ans.createdAt)}
-                  </div>
-                </div>
-              </div>
-              <div className="forum-doctor-body forum-doctor-body-html">
-                <AnswerHtml html={ans.answerHtml} />
-              </div>
-            </article>
+            <DoctorAnswerCard
+              key={ans.id}
+              answerId={ans.id}
+              createdAt={ans.createdAt}
+              answerHtml={ans.answerHtml}
+              questionCategory={detail.category}
+              doctor={ans.doctor}
+            />
           ))}
 
           <div className="forum-disclaimer" style={{ marginTop: 16 }}>

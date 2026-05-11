@@ -5,7 +5,7 @@ import { Seo } from '../components/Seo';
 import { useSession } from '../context/SessionContext';
 import { useToast } from '../context/ToastContext';
 import { apiRequest, apiUploadPublicImage } from '../lib/api';
-import { QUESTION_CATEGORY_OPTIONS } from '../constants/questionCategories';
+import { QUESTION_CATEGORY_ALL } from '../constants/questionCategories';
 import './DoctorAuth.css';
 
 const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim();
@@ -82,7 +82,7 @@ export default function DoctorSignupPage() {
     email: '',
     password: '',
   });
-  const [expertiseTags, setExpertiseTags] = useState<string[]>([...QUESTION_CATEGORY_OPTIONS]);
+  const [expertiseTags, setExpertiseTags] = useState<string[]>([]);
 
   const bioCharCount = form.bio.length;
   const bioRemaining = MAX_BIO_CHARS - bioCharCount;
@@ -336,7 +336,7 @@ export default function DoctorSignupPage() {
               Patient questions are routed by category. Choose every specialty you are willing to review (at least one).
             </p>
             <div className="doctor-expertise-grid">
-              {QUESTION_CATEGORY_OPTIONS.map((tag) => (
+              {QUESTION_CATEGORY_ALL.map((tag) => (
                 <label key={tag} className="doctor-expertise-chip">
                   <input
                     type="checkbox"

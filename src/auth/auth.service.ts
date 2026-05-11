@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { Role } from '../common/enums/role.enum';
 import { AuditLog } from '../entities/audit-log.entity';
 import { User } from '../entities/user.entity';
+import { normalizePublicUploadPhotoUrl } from '../common/utils/normalize-upload-url';
 import { UsersService } from '../users/users.service';
 import { DoctorSignupDto } from './dto/doctor-signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -35,6 +36,7 @@ export class AuthService {
       phone: input.phone ?? null,
       role: Role.PATIENT,
       passwordHash,
+      signupLocation: input.signupLocation?.trim() || null,
     });
     await this.recordAuthAudit(user.id, 'auth.signup', { role: user.role });
     return this.buildAuthResponse(user);
@@ -124,7 +126,7 @@ export class AuthService {
             qualification: profile.qualification,
             clinicalExperienceYears: profile.clinicalExperienceYears,
             bio: profile.bio,
-            photoUrl: profile.photoUrl,
+            photoUrl: normalizePublicUploadPhotoUrl(profile.photoUrl),
             expertiseTags: profile.expertiseTags ?? [],
           }
         : null,

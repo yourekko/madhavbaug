@@ -11,6 +11,7 @@ type CreateUserInput = {
   phone: string | null;
   role: User['role'];
   passwordHash: string;
+  signupLocation?: string | null;
 };
 
 type CreateDoctorProfileInput = {

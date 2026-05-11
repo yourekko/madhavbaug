@@ -7,7 +7,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -16,7 +15,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { randomUUID } from 'crypto';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -74,11 +72,9 @@ export class DoctorController {
       },
     }),
   )
-  uploadImage(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  uploadImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No image file received.');
-    const host = req.get('host');
-    const proto = req.protocol;
-    return { url: `${proto}://${host}/uploads/${file.filename}` };
+    return { url: `/uploads/${file.filename}` };
   }
 
   @Patch('answers/:id')

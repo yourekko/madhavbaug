@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -6,6 +7,7 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, MoreThanOrEqual, Repository } from 'typeorm';
 import { QuestionStatus } from '../common/enums/question-status.enum';
@@ -13,15 +15,23 @@ import { Role } from '../common/enums/role.enum';
 import { Answer } from '../entities/answer.entity';
 import { AuditLog } from '../entities/audit-log.entity';
 import { QuestionAssignment } from '../entities/question-assignment.entity';
+import { ForumQuestionViewDedupe } from '../entities/forum-question-view-dedupe.entity';
 import { QuestionFollowup } from '../entities/question-followup.entity';
 import { Question } from '../entities/question.entity';
 import { User } from '../entities/user.entity';
 import { UsersService } from '../users/users.service';
+import { normalizePublicUploadPhotoUrl } from '../common/utils/normalize-upload-url';
 import { buildForumSlug } from '../common/utils/slugify';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { CreateFollowupDto } from './dto/create-followup.dto';
-import { CreateQuestionDto } from './dto/create-question.dto';
+import { CreateQuestionDto, CREATABLE_QUESTION_CATEGORIES } from './dto/create-question.dto';
 import { FORUM_SLUG_TO_CATEGORIES, getCategoriesForForumSlug } from './forum-category-map';
+
+function forumViewDedupeWindowMs(): number {
+  const hours = Number(process.env.FORUM_VIEW_DEDUPE_HOURS ?? '24');
+  const safe = Number.isFinite(hours) && hours > 0 ? hours : 24;
+  return safe * 60 * 60 * 1000;
+}
 
 @Injectable()
 export class QuestionsService implements OnModuleInit {
@@ -40,6 +50,126 @@ export class QuestionsService implements OnModuleInit {
     private readonly auditRepo: Repository<AuditLog>,
     private readonly usersService: UsersService,
   ) {}
+
+  private isMysqlDuplicateKeyError(err: unknown): boolean {
+    const any = err as { code?: string; errno?: number; driverError?: { errno?: number } };
+    return any?.code === 'ER_DUP_ENTRY' || any?.errno === 1062 || any?.driverError?.errno === 1062;
+  }
+
+  /**
+   * Prefer `X-Forum-Viewer-Id` (UUID from the SPA) so dedupe works across API host + site host.
+   * Fallback: hash of IP + User-Agent (coarser; shared NAT may under-count distinct people).
+   */
+  private forumViewerKeyFromRequest(req: Request, viewerHeader?: string): string {
+    const trimmed = viewerHeader?.trim();
+    if (
+      trimmed &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)
+    ) {
+      return `v:${trimmed.toLowerCase()}`;
+    }
+    const xff = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
+    const ip = xff || req.socket?.remoteAddress || '0';
+    const ua = (req.headers['user-agent'] as string | undefined) || '';
+    const hash = createHash('sha256').update(`${ip}|${ua}`).digest('hex').slice(0, 48);
+    return `n:${hash}`;
+  }
+
+  /** Count at most one view per viewer per dedupe window (default 24h), like typical social “unique views”. */
+  private async recordPublicForumQuestionViewIfNew(
+    questionId: string,
+    req: Request,
+    viewerHeader?: string,
+  ): Promise<number> {
+    const viewerKey = this.forumViewerKeyFromRequest(req, viewerHeader);
+    const windowMs = forumViewDedupeWindowMs();
+    const now = new Date();
+
+    await this.questionRepo.manager.transaction(async (em) => {
+      const dedupeRepo = em.getRepository(ForumQuestionViewDedupe);
+      const row = dedupeRepo.create({ questionId, viewerKey, lastCountedAt: now });
+      try {
+        await dedupeRepo.save(row);
+        await em.increment(Question, { id: questionId }, 'viewCount', 1);
+        return;
+      } catch (err) {
+        if (!this.isMysqlDuplicateKeyError(err)) throw err;
+      }
+
+      const existing = await dedupeRepo.findOne({
+        where: { questionId, viewerKey },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!existing) return;
+      const last = new Date(existing.lastCountedAt).getTime();
+      if (now.getTime() - last >= windowMs) {
+        existing.lastCountedAt = now;
+        await dedupeRepo.save(existing);
+        await em.increment(Question, { id: questionId }, 'viewCount', 1);
+      }
+    });
+
+    const fresh = await this.questionRepo.findOne({
+      where: { id: questionId },
+      select: ['viewCount'],
+    });
+    return fresh?.viewCount ?? 0;
+  }
+
+  /** Strip secrets from nested users when returning question threads to clients. */
+  private sanitizeDoctorProfile(profile: NonNullable<User['doctorProfile']>) {
+    return {
+      degree: profile.degree,
+      qualification: profile.qualification,
+      clinicalExperienceYears: profile.clinicalExperienceYears,
+      bio: profile.bio,
+      photoUrl: normalizePublicUploadPhotoUrl(profile.photoUrl),
+      branchName: profile.branchName,
+      profileLink: profile.profileLink,
+      expertiseTags: profile.expertiseTags,
+      profileCompleted: profile.profileCompleted,
+    };
+  }
+
+  private sanitizeQuestionThread(question: Question) {
+    const answers = (question.answers ?? []).map((a) => ({
+      id: a.id,
+      questionId: a.questionId,
+      doctorUserId: a.doctorUserId,
+      answerText: a.answerText,
+      isPublished: a.isPublished,
+      createdAt: a.createdAt,
+      updatedAt: a.updatedAt,
+      doctor: a.doctor
+        ? {
+            id: a.doctor.id,
+            name: a.doctor.name,
+            email: a.doctor.email,
+            phone: a.doctor.phone,
+            role: a.doctor.role,
+            doctorProfile: a.doctor.doctorProfile ? this.sanitizeDoctorProfile(a.doctor.doctorProfile) : null,
+          }
+        : null,
+    }));
+    return {
+      id: question.id,
+      patientUserId: question.patientUserId,
+      title: question.title,
+      body: question.body,
+      category: question.category,
+      status: question.status,
+      forumSlug: question.forumSlug,
+      viewCount: question.viewCount,
+      createdAt: question.createdAt,
+      updatedAt: question.updatedAt,
+      patientAgeGroup: question.patientAgeGroup,
+      patientGender: question.patientGender,
+      patientHistory: question.patientHistory,
+      followups: question.followups,
+      assignments: question.assignments,
+      answers,
+    };
+  }
 
   /** Lowercased tags; empty means legacy profile (no filter — same as pre–expertise-queue behavior). */
   private async getDoctorNormalizedExpertise(doctorUserId: string): Promise<string[]> {
@@ -88,19 +218,27 @@ export class QuestionsService implements OnModuleInit {
   }
 
   async createQuestion(patientUserId: string, dto: CreateQuestionDto) {
+    const rawCat = dto.category?.trim();
+    const category =
+      rawCat && (CREATABLE_QUESTION_CATEGORIES as readonly string[]).includes(rawCat)
+        ? rawCat
+        : 'Other';
     const question = await this.questionRepo.save(
       this.questionRepo.create({
         patientUserId,
         title: dto.title,
         body: dto.body,
-        category: dto.category,
+        category,
+        patientAgeGroup: dto.patientAgeGroup?.trim() || null,
+        patientGender: dto.patientGender?.trim() || null,
+        patientHistory: dto.patientHistory?.trim() || null,
         status: QuestionStatus.OPEN,
       }),
     );
     const forumSlug = buildForumSlug(question.title, question.id);
     await this.questionRepo.update({ id: question.id }, { forumSlug });
     question.forumSlug = forumSlug;
-    await this.log(patientUserId, 'question.create', 'question', question.id, { category: dto.category });
+    await this.log(patientUserId, 'question.create', 'question', question.id, { category });
     return question;
   }
 
@@ -117,7 +255,11 @@ export class QuestionsService implements OnModuleInit {
   async getQuestionThread(questionId: string, requesterId: string, requesterRole: Role) {
     const question = await this.questionRepo.findOne({
       where: { id: questionId },
-      relations: { answers: true, followups: true, assignments: true },
+      relations: {
+        answers: { doctor: { doctorProfile: true } },
+        followups: true,
+        assignments: true,
+      },
     });
     if (!question) throw new NotFoundException('Question not found.');
     if (requesterRole === Role.PATIENT && question.patientUserId !== requesterId) {
@@ -127,7 +269,7 @@ export class QuestionsService implements OnModuleInit {
       const ok = await this.doctorMayAccessQuestion(requesterId, question);
       if (!ok) throw new NotFoundException('Question not found.');
     }
-    return question;
+    return this.sanitizeQuestionThread(question);
   }
 
   async addFollowup(questionId: string, patientUserId: string, dto: CreateFollowupDto) {
@@ -235,6 +377,37 @@ export class QuestionsService implements OnModuleInit {
     }
   }
 
+  private parseRecommendationItems(raw: string | undefined): string[] {
+    return String(raw ?? '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  private withDiabetesBlocks(category: string, answerHtml: string, recommendationPlan?: string): string {
+    const cat = String(category ?? '').trim().toLowerCase();
+    const recommendationItems = this.parseRecommendationItems(recommendationPlan);
+    const recommendationBlock =
+      recommendationItems.length === 0
+        ? ''
+        : `<section class="mb-action-plan"><h3>Recommended Action Plan:</h3><ol>${recommendationItems
+            .map((item) => `<li>${this.escapeHtml(item)}</li>`)
+            .join('')}</ol></section>`;
+    if (cat !== 'diabetes') return `${answerHtml}${recommendationBlock}`;
+    const hba1cBlock = `<section class="mb-hba1c-table"><h3>HbA1C Test - Normal, Prediabetes, And Diabetes Ranges</h3><table><thead><tr><th>Category</th><th>HbA1C (%)</th><th>Average Blood Glucose (mg/dL)</th><th>Average Blood Glucose (mmol/L)</th></tr></thead><tbody><tr><td>Normal</td><td>Below 5.7%</td><td>Below 117 mg/dL</td><td>Below 6.5 mmol/L</td></tr><tr><td>Prediabetes</td><td>5.7% to 6.4%</td><td>117 to 137 mg/dL</td><td>6.5 to 7.6 mmol/L</td></tr><tr><td>Diabetes</td><td>6.5% or higher</td><td>140 mg/dL or higher</td><td>7.8 mmol/L or higher</td></tr></tbody></table></section>`;
+    return `${answerHtml}${hba1cBlock}${recommendationBlock}`;
+  }
+
   async addDoctorAnswer(doctorUserId: string, questionId: string, dto: CreateAnswerDto) {
     this.assertAnswerHasBody(dto.answerText);
     return this.questionRepo.manager.transaction(async (em) => {
@@ -281,7 +454,7 @@ export class QuestionsService implements OnModuleInit {
         aRepo.create({
           doctorUserId,
           questionId,
-          answerText: dto.answerText,
+          answerText: this.withDiabetesBlocks(question.category, dto.answerText, dto.recommendationPlan),
           isPublished: true,
         }),
       );
@@ -292,13 +465,72 @@ export class QuestionsService implements OnModuleInit {
     });
   }
 
-  async adminListQuestions(status?: QuestionStatus, page = 1, limit = 20) {
-    return this.questionRepo.find({
-      where: status ? { status } : {},
-      relations: { answers: true, assignments: true },
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
+  async adminListQuestions(status?: QuestionStatus, page = 1, limit = 20, category?: string) {
+    const qb = this.questionRepo
+      .createQueryBuilder('q')
+      .leftJoinAndSelect('q.answers', 'answers')
+      .leftJoinAndSelect('q.assignments', 'assignments')
+      .leftJoinAndSelect('q.patientUser', 'patient')
+      .orderBy('q.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+    if (status) qb.andWhere('q.status = :status', { status });
+    if (category?.trim()) qb.andWhere('q.category = :category', { category: category.trim() });
+    const rows = await qb.getMany();
+
+    const ids = [...new Set(rows.map((r) => r.patientUserId))];
+    const usersById =
+      ids.length > 0
+        ? new Map(
+            (
+              await this.usersRepo.find({
+                where: { id: In(ids) },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                  signupLocation: true,
+                  googleSub: true,
+                  isActive: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              })
+            ).map((u) => [u.id, u] as const),
+          )
+        : new Map<string, User>();
+
+    return rows.map((q) => {
+      const p = q.patientUser ?? usersById.get(q.patientUserId) ?? null;
+      return {
+        id: q.id,
+        title: q.title,
+        body: q.body,
+        category: q.category,
+        status: q.status,
+        patientUserId: q.patientUserId,
+        createdAt: q.createdAt,
+        patientAgeGroup: q.patientAgeGroup,
+        patientGender: q.patientGender,
+        patientHistory: q.patientHistory,
+        patient: p
+          ? {
+              id: p.id,
+              name: p.name,
+              email: p.email,
+              phone: p.phone,
+              signupLocation: p.signupLocation,
+              memberSince: p.createdAt,
+              accountUpdatedAt: p.updatedAt,
+              isActive: p.isActive,
+              /** No raw tokens — admin visibility only. */
+              signInMethod: p.googleSub ? ('google' as const) : ('phone_or_email' as const),
+            }
+          : null,
+        answers: q.answers,
+        assignments: q.assignments,
+      };
     });
   }
 
@@ -619,6 +851,11 @@ export class QuestionsService implements OnModuleInit {
         patientName: patient.name,
         email: patient.email,
         phone: patient.phone,
+        signupLocation: patient.signupLocation,
+        isActive: patient.isActive,
+        memberSince: patient.createdAt,
+        accountUpdatedAt: patient.updatedAt,
+        signInMethod: patient.googleSub ? ('google' as const) : ('phone_or_email' as const),
         totalQuestions: parseInt(question?.totalQuestions ?? '0', 10),
         questionsLast30Days: parseInt(question?.questionsLast30Days ?? '0', 10),
         answeredQuestions: parseInt(question?.answeredQuestions ?? '0', 10),
@@ -1025,7 +1262,12 @@ export class QuestionsService implements OnModuleInit {
     return { items, total, page, limit };
   }
 
-  async getPublicForumQuestionDetail(categorySlug: string, questionSlugOrId: string) {
+  async getPublicForumQuestionDetail(
+    categorySlug: string,
+    questionSlugOrId: string,
+    req: Request,
+    viewerHeader?: string,
+  ) {
     const cats = getCategoriesForForumSlug(categorySlug);
     if (!cats) throw new NotFoundException('Forum category not found.');
 
@@ -1048,8 +1290,7 @@ export class QuestionsService implements OnModuleInit {
       throw new NotFoundException('This discussion is not published on the forum yet.');
     }
 
-    await this.questionRepo.increment({ id: question.id }, 'viewCount', 1);
-    const viewCount = (question.viewCount ?? 0) + 1;
+    const viewCount = await this.recordPublicForumQuestionViewIfNew(question.id, req, viewerHeader);
 
     const doctorIds = [...new Set(answers.map((a) => a.doctorUserId))];
     const doctors =
@@ -1110,7 +1351,10 @@ export class QuestionsService implements OnModuleInit {
             name: doc?.name ?? 'Verified doctor',
             titles: profile ? `${profile.degree} · ${profile.qualification}` : 'Medical reviewer',
             experienceYears: profile?.clinicalExperienceYears ?? null,
-            photoUrl: profile?.photoUrl ?? null,
+            photoUrl: normalizePublicUploadPhotoUrl(profile?.photoUrl ?? null),
+            bio: profile?.bio?.trim() || null,
+            branchName: profile?.branchName ?? null,
+            profileLink: profile?.profileLink ?? null,
           },
         };
       }),

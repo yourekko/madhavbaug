@@ -1,1 +1,1 @@
-export declare const QUESTION_CATEGORY_VALUES: readonly ["Diabetes", "Heart Health", "Blood Pressure", "Weight Management", "Lifestyle & Diet", "Other"];
+export declare const QUESTION_CATEGORY_VALUES: readonly ["Heart", "Diabetes", "Hypertension", "Weight Loss", "PCOD / PCOS", "Joint Pain", "Kidney", "Skin Care", "Hair Loss / Hair Fall", "Thyroid", "Piles", "Arthritis", "Lifestyle & Diet", "Heart Health", "Blood Pressure", "Weight Management", "Other"];

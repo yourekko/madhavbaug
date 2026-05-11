@@ -34,14 +34,17 @@ let AdminController = class AdminController {
     dashboard() {
         return this.questionsService.adminDashboard();
     }
-    questions(status, page, limit) {
-        return this.questionsService.adminListQuestions(status, Number(page ?? 1), Number(limit ?? 20));
+    questions(status, page, limit, category) {
+        return this.questionsService.adminListQuestions(status, Number(page ?? 1), Number(limit ?? 20), category);
     }
     updateStatus(id, dto, user) {
         return this.questionsService.adminUpdateStatus(id, dto.status, user.sub);
     }
     assignDoctor(id, dto, user) {
         return this.questionsService.adminAssignDoctor(id, dto.doctorUserId, user.sub);
+    }
+    deleteQuestion(id, user) {
+        return this.questionsService.adminDeleteQuestion(id, user.sub);
     }
     doctors() {
         return this.usersService.getDoctors();
@@ -68,8 +71,9 @@ __decorate([
     __param(0, (0, common_1.Query)('status')),
     __param(1, (0, common_1.Query)('page')),
     __param(2, (0, common_1.Query)('limit')),
+    __param(3, (0, common_1.Query)('category')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "questions", null);
 __decorate([
@@ -90,6 +94,14 @@ __decorate([
     __metadata("design:paramtypes", [String, assign_doctor_dto_1.AssignDoctorDto, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "assignDoctor", null);
+__decorate([
+    (0, common_1.Delete)('questions/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "deleteQuestion", null);
 __decorate([
     (0, common_1.Get)('doctors'),
     __metadata("design:type", Function),

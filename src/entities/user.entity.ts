@@ -32,6 +32,12 @@ export class User {
   @Column({ type: 'varchar', unique: true, nullable: true, length: 20 })
   phone!: string | null;
 
+  @Column({ name: 'signup_location', type: 'varchar', nullable: true, length: 180 })
+  signupLocation!: string | null;
+
+  @Column({ name: 'google_sub', type: 'varchar', unique: true, nullable: true, length: 255 })
+  googleSub!: string | null;
+
   @Column({ name: 'password_hash' })
   passwordHash!: string;
 

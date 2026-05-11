@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './api';
+import { getOrCreateForumViewerId } from './forumViewerId';
 
 export type ForumStats = Record<string, { answered: number; open: number }>;
 
@@ -78,6 +79,9 @@ export type ForumAnswerBlock = {
     titles: string;
     experienceYears: number | null;
     photoUrl: string | null;
+    bio: string | null;
+    branchName: string | null;
+    profileLink: string | null;
   };
 };
 
@@ -141,8 +145,13 @@ export async function fetchForumQuestionDetail(
   categorySlug: string,
   questionSlug: string,
 ): Promise<ForumDetailResponse | null> {
+  const viewerId = getOrCreateForumViewerId();
   const res = await fetch(
     `${API_BASE_URL}/public/forum/${categorySlug}/questions/${encodeURIComponent(questionSlug)}`,
+    {
+      headers: { 'X-Forum-Viewer-Id': viewerId },
+      credentials: 'include',
+    },
   );
   if (res.status === 404) return null;
   const body = await parseJson(res);
