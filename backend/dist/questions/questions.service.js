@@ -189,21 +189,52 @@ let QuestionsService = class QuestionsService {
     async backfillForumSlugs() {
         const missing = await this.questionRepo.find({
             where: { forumSlug: (0, typeorm_2.IsNull)() },
-            select: ['id', 'title'],
+            select: ['id', 'title', 'body'],
         });
         for (const q of missing) {
-            const forumSlug = (0, slugify_1.buildForumSlug)(q.title, q.id);
-            await this.questionRepo.update({ id: q.id }, { forumSlug });
+            const seoTitle = (0, slugify_1.extractQuestionTitle)(q.body?.trim() || q.title);
+            const forumSlug = (0, slugify_1.buildForumSlug)(seoTitle, q.id);
+            await this.questionRepo.update({ id: q.id }, { forumSlug, title: q.title?.trim() ? q.title : seoTitle });
         }
+        const longSlugs = await this.questionRepo
+            .createQueryBuilder('q')
+            .where('q.forum_slug IS NOT NULL')
+            .andWhere('CHAR_LENGTH(q.forum_slug) > 70')
+            .select(['q.id', 'q.title', 'q.body', 'q.forumSlug'])
+            .getMany();
+        for (const q of longSlugs) {
+            const seoTitle = (0, slugify_1.extractQuestionTitle)(q.body?.trim() || q.title);
+            const forumSlug = (0, slugify_1.buildForumSlug)(seoTitle, q.id);
+            if (forumSlug !== q.forumSlug) {
+                await this.questionRepo.update({ id: q.id }, { forumSlug });
+            }
+        }
+    }
+    async findQuestionByPublicSlug(questionSlugOrId) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(questionSlugOrId);
+        if (isUuid) {
+            return this.questionRepo.findOne({ where: { id: questionSlugOrId } });
+        }
+        const exact = await this.questionRepo.findOne({ where: { forumSlug: questionSlugOrId } });
+        if (exact)
+            return exact;
+        const frag = (0, slugify_1.forumSlugIdFragment)(questionSlugOrId);
+        if (!frag)
+            return null;
+        return this.questionRepo
+            .createQueryBuilder('q')
+            .where('REPLACE(q.id, "-", "") LIKE :frag', { frag: `${frag}%` })
+            .getOne();
     }
     async createQuestion(patientUserId, dto) {
         const rawCat = dto.category?.trim();
         const category = rawCat && create_question_dto_1.CREATABLE_QUESTION_CATEGORIES.includes(rawCat)
             ? rawCat
             : 'Other';
+        const seoTitle = (0, slugify_1.extractQuestionTitle)(dto.body.trim());
         const question = await this.questionRepo.save(this.questionRepo.create({
             patientUserId,
-            title: dto.title,
+            title: seoTitle,
             body: dto.body,
             category,
             patientAgeGroup: dto.patientAgeGroup?.trim() || null,
@@ -211,7 +242,7 @@ let QuestionsService = class QuestionsService {
             patientHistory: dto.patientHistory?.trim() || null,
             status: question_status_enum_1.QuestionStatus.OPEN,
         }));
-        const forumSlug = (0, slugify_1.buildForumSlug)(question.title, question.id);
+        const forumSlug = (0, slugify_1.buildForumSlug)(seoTitle, question.id);
         await this.questionRepo.update({ id: question.id }, { forumSlug });
         question.forumSlug = forumSlug;
         await this.log(patientUserId, 'question.create', 'question', question.id, { category });
@@ -1112,10 +1143,7 @@ let QuestionsService = class QuestionsService {
         const cats = (0, forum_category_map_1.getCategoriesForForumSlug)(categorySlug);
         if (!cats)
             throw new common_1.NotFoundException('Forum category not found.');
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(questionSlugOrId);
-        const question = isUuid
-            ? await this.questionRepo.findOne({ where: { id: questionSlugOrId } })
-            : await this.questionRepo.findOne({ where: { forumSlug: questionSlugOrId } });
+        const question = await this.findQuestionByPublicSlug(questionSlugOrId);
         if (!question || !cats.includes(question.category)) {
             throw new common_1.NotFoundException('Question not found.');
         }
@@ -1192,10 +1220,7 @@ let QuestionsService = class QuestionsService {
         const cats = (0, forum_category_map_1.getCategoriesForForumSlug)(categorySlug);
         if (!cats)
             throw new common_1.NotFoundException('Forum category not found.');
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(questionSlugOrId);
-        const question = isUuid
-            ? await this.questionRepo.findOne({ where: { id: questionSlugOrId } })
-            : await this.questionRepo.findOne({ where: { forumSlug: questionSlugOrId } });
+        const question = await this.findQuestionByPublicSlug(questionSlugOrId);
         if (!question || !cats.includes(question.category)) {
             throw new common_1.NotFoundException('Question not found.');
         }

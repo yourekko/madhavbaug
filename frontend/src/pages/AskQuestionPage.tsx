@@ -19,6 +19,7 @@ import { Seo } from '../components/Seo';
 import { Reveal } from '../components/Reveal';
 import { useSession } from '../context/SessionContext';
 import { useToast } from '../context/ToastContext';
+import { extractQuestionTitle } from '../lib/questionSlug';
 import { apiRequest } from '../lib/api';
 import { QUESTION_CATEGORY_OPTIONS, QUESTION_CATEGORY_PLACEHOLDER } from '../constants/questionCategories';
 import '../AskQuestion.css';
@@ -63,8 +64,6 @@ const faqItems = [
 
 const MAX_Q = 2000;
 const MIN_Q = 20;
-/** Must match API `CreateQuestionDto` @MaxLength(180) — was 80 and cut titles mid-sentence in lists. */
-const MAX_TITLE_LEN = 180;
 
 type AskLocationState = { draftQuestion?: string };
 
@@ -108,7 +107,7 @@ export default function AskQuestionPage() {
         {
           method: 'POST',
           body: JSON.stringify({
-            title: question.trim().slice(0, MAX_TITLE_LEN) || 'Health Question',
+            title: extractQuestionTitle(question.trim()),
             body: question,
             ...(category !== categories[0] ? { category } : {}),
             patientAgeGroup: ageGroup === ageGroups[0] ? undefined : ageGroup,

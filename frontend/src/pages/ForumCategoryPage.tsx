@@ -23,6 +23,7 @@ import {
   type ForumCategorySlug,
 } from '../data/forumData';
 import { fetchForumQuestionList, fetchForumStats, type ForumListItem, type ForumStats } from '../lib/forumPublicApi';
+import { forumQuestionPath } from '../lib/questionSlug';
 import { formatShortAgo } from '../lib/formatShortAgo';
 import '../Forum.css';
 
@@ -232,7 +233,7 @@ export function ForumCategoryPage() {
                         {filter === 'open' ? 'Awaiting doctor' : 'Doctor answered'}
                       </span>
                     </div>
-                    <Link to={`/forum/${slug}/question/${item.slug}`} className="forum-q-title forum-q-title--full">
+                    <Link to={forumQuestionPath(slug, item.slug)} className="forum-q-title forum-q-title--full">
                       {item.body || item.title}
                     </Link>
                     <div className="forum-q-footer">

@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import './App.css';
 import SiteLayout from './components/SiteLayout';
 import AskQuestionPage from './pages/AskQuestionPage';
@@ -18,6 +18,13 @@ function LegacyDiabetesForumRedirect() {
   const loc = useLocation();
   const to = loc.pathname.replace(/^\/forum\/diabetes(?=\/|$)/, '/forum/diabetes-management');
   return <Navigate to={`${to}${loc.search}${loc.hash}`} replace />;
+}
+
+/** Old `/forum/:cat/question/:slug` → `/forum/:cat/:slug` (301-style client redirect). */
+function LegacyQuestionUrlRedirect() {
+  const { categorySlug, questionId } = useParams();
+  if (!categorySlug || !questionId) return <Navigate to="/forum" replace />;
+  return <Navigate to={`/forum/${categorySlug}/${questionId}`} replace />;
 }
 
 export default function App() {
@@ -42,8 +49,9 @@ export default function App() {
           <Route path="/forum/complete-phone" element={<CompletePatientPhonePage />} />
           <Route path="/forum/doctor/complete-profile" element={<DoctorCompleteProfilePage />} />
           <Route path="/forum/diabetes/*" element={<LegacyDiabetesForumRedirect />} />
+          <Route path="/forum/:categorySlug/question/:questionId" element={<LegacyQuestionUrlRedirect />} />
+          <Route path="/forum/:categorySlug/:questionSlug" element={<ForumQuestionDetailPage />} />
           <Route path="/forum/:categorySlug" element={<ForumCategoryPage />} />
-          <Route path="/forum/:categorySlug/question/:questionId" element={<ForumQuestionDetailPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

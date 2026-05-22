@@ -32,6 +32,7 @@ export declare class QuestionsService implements OnModuleInit {
     private doctorMayAccessQuestion;
     onModuleInit(): Promise<void>;
     private backfillForumSlugs;
+    private findQuestionByPublicSlug;
     createQuestion(patientUserId: string, dto: CreateQuestionDto): Promise<Question>;
     getMyQuestions(patientUserId: string, page?: number, limit?: number): Promise<Question[]>;
     getQuestionThread(questionId: string, requesterId: string, requesterRole: Role): Promise<{

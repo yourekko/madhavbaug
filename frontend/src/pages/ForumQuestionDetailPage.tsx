@@ -11,6 +11,7 @@ import {
   type ForumCategorySlug,
 } from '../data/forumData';
 import { fetchForumQuestionDetail, submitForumReport, type ForumDetailResponse } from '../lib/forumPublicApi';
+import { forumQuestionPath } from '../lib/questionSlug';
 import { formatShortAgo } from '../lib/formatShortAgo';
 import { isForumQuestionSaved, toggleForumSaved } from '../lib/forumSavedQuestions';
 import '../Forum.css';
@@ -44,7 +45,7 @@ async function shareDiscussionPage(title: string, url: string, toast: { success:
 
 export function ForumQuestionDetailPage() {
   const toast = useToast();
-  const { categorySlug, questionId } = useParams();
+  const { categorySlug, questionSlug } = useParams();
   const slugValid = Boolean(categorySlug && isForumCategorySlug(categorySlug));
   const slug = (slugValid ? categorySlug! : DEFAULT_FORUM_SLUG) as ForumCategorySlug;
   const meta = CATEGORY_META[slug];
@@ -64,7 +65,7 @@ export function ForumQuestionDetailPage() {
       setNotFound(false);
       return;
     }
-    if (!questionId) {
+    if (!questionSlug) {
       setLoading(false);
       setNotFound(true);
       setDetail(null);
@@ -74,7 +75,7 @@ export function ForumQuestionDetailPage() {
     (async () => {
       setLoading(true);
       try {
-        const d = await fetchForumQuestionDetail(slug, questionId);
+        const d = await fetchForumQuestionDetail(slug, questionSlug);
         if (cancelled) return;
         if (!d) {
           setDetail(null);
@@ -95,7 +96,7 @@ export function ForumQuestionDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [slugValid, slug, questionId]);
+  }, [slugValid, slug, questionSlug]);
 
   useEffect(() => {
     if (!detail || !slugValid) return;
@@ -172,7 +173,7 @@ export function ForumQuestionDetailPage() {
   }
 
   if (notFound || !detail) {
-    const path = `/forum/${slug}/question/${questionId ?? ''}`;
+    const path = forumQuestionPath(slug, questionSlug ?? '');
     return (
       <>
         <Seo
@@ -197,12 +198,17 @@ export function ForumQuestionDetailPage() {
   const descSeg = truncateMeta(detail.body, 160);
   const breadcrumbLeaf = truncateMeta(detail.body, 48);
 
+  const canonicalPath = forumQuestionPath(slug, detail.slug);
+  if (questionSlug && questionSlug !== detail.slug) {
+    return <Navigate to={canonicalPath} replace />;
+  }
+
   return (
     <div className="forum-page forum-detail">
       <Seo
         title={titleSeg}
         description={descSeg}
-        canonicalPath={`/forum/${slug}/question/${detail.slug}`}
+        canonicalPath={canonicalPath}
         ogType="article"
       />
       <div className="forum-shell forum-detail-shell">
@@ -334,7 +340,7 @@ export function ForumQuestionDetailPage() {
               <ul className="forum-related-list">
                 {detail.related.map((r) => (
                   <li key={r.slug}>
-                    <Link to={`/forum/${slug}/question/${r.slug}`} className="forum-related-link">
+                    <Link to={forumQuestionPath(slug, r.slug)} className="forum-related-link">
                       {r.title}
                     </Link>
                     <div className="forum-related-meta">

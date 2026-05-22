@@ -21,6 +21,7 @@ import { useAuthModal } from '../context/AuthModalContext';
 import { seoConfig } from '../seo/seoConfig';
 import { Reveal } from '../components/Reveal';
 import { fetchForumStats, fetchHomeFeed, type HomeFeedResponse } from '../lib/forumPublicApi';
+import { forumQuestionPath } from '../lib/questionSlug';
 
 const topics = [
   ['Diabetes Management', 'Blood sugar control, diet plans, lifestyle modifications', '1,247 Questions', <MdBloodtype />],
@@ -241,7 +242,7 @@ export default function HomePage() {
       createdAt: item.createdAt,
       questionHref:
         item.questionSlug && item.categorySlug
-          ? `/forum/${item.categorySlug}/question/${item.questionSlug}`
+          ? forumQuestionPath(item.categorySlug, item.questionSlug)
           : '/forum/ask',
     }));
   }, [homeFeed]);
@@ -403,7 +404,7 @@ export default function HomePage() {
               <span>
                 <FaShieldHeart /> Evidence indicator
               </span>
-              <a href={quickAnswer?.questionSlug && quickAnswer?.categorySlug ? `/forum/${quickAnswer.categorySlug}/question/${quickAnswer.questionSlug}` : '#'}>
+              <a href={quickAnswer?.questionSlug && quickAnswer?.categorySlug ? forumQuestionPath(quickAnswer.categorySlug, quickAnswer.questionSlug) : '#'}>
                 Expand full explanation <FaChevronDown />
               </a>
             </div>
@@ -529,7 +530,7 @@ export default function HomePage() {
                   <Link
                     to={
                       r.questionSlug && r.categorySlug
-                        ? `/forum/${r.categorySlug}/question/${r.questionSlug}`
+                        ? forumQuestionPath(r.categorySlug, r.questionSlug)
                         : '/forum/ask'
                     }
                   >

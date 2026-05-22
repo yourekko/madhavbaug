@@ -21,7 +21,7 @@ import { Question } from '../entities/question.entity';
 import { User } from '../entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { normalizePublicUploadPhotoUrl } from '../common/utils/normalize-upload-url';
-import { buildForumSlug } from '../common/utils/slugify';
+import { buildForumSlug, extractQuestionTitle, forumSlugIdFragment } from '../common/utils/slugify';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { CreateFollowupDto } from './dto/create-followup.dto';
 import { CreateQuestionDto, CREATABLE_QUESTION_CATEGORIES } from './dto/create-question.dto';
@@ -209,12 +209,49 @@ export class QuestionsService implements OnModuleInit {
   private async backfillForumSlugs() {
     const missing = await this.questionRepo.find({
       where: { forumSlug: IsNull() },
-      select: ['id', 'title'],
+      select: ['id', 'title', 'body'],
     });
     for (const q of missing) {
-      const forumSlug = buildForumSlug(q.title, q.id);
-      await this.questionRepo.update({ id: q.id }, { forumSlug });
+      const seoTitle = extractQuestionTitle(q.body?.trim() || q.title);
+      const forumSlug = buildForumSlug(seoTitle, q.id);
+      await this.questionRepo.update({ id: q.id }, { forumSlug, title: q.title?.trim() ? q.title : seoTitle });
     }
+
+    /** Refresh overly long legacy slugs (full question text in URL). */
+    const longSlugs = await this.questionRepo
+      .createQueryBuilder('q')
+      .where('q.forum_slug IS NOT NULL')
+      .andWhere('CHAR_LENGTH(q.forum_slug) > 70')
+      .select(['q.id', 'q.title', 'q.body', 'q.forumSlug'])
+      .getMany();
+    for (const q of longSlugs) {
+      const seoTitle = extractQuestionTitle(q.body?.trim() || q.title);
+      const forumSlug = buildForumSlug(seoTitle, q.id);
+      if (forumSlug !== q.forumSlug) {
+        await this.questionRepo.update({ id: q.id }, { forumSlug });
+      }
+    }
+  }
+
+  private async findQuestionByPublicSlug(questionSlugOrId: string): Promise<Question | null> {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        questionSlugOrId,
+      );
+    if (isUuid) {
+      return this.questionRepo.findOne({ where: { id: questionSlugOrId } });
+    }
+
+    const exact = await this.questionRepo.findOne({ where: { forumSlug: questionSlugOrId } });
+    if (exact) return exact;
+
+    const frag = forumSlugIdFragment(questionSlugOrId);
+    if (!frag) return null;
+
+    return this.questionRepo
+      .createQueryBuilder('q')
+      .where('REPLACE(q.id, "-", "") LIKE :frag', { frag: `${frag}%` })
+      .getOne();
   }
 
   async createQuestion(patientUserId: string, dto: CreateQuestionDto) {
@@ -223,10 +260,11 @@ export class QuestionsService implements OnModuleInit {
       rawCat && (CREATABLE_QUESTION_CATEGORIES as readonly string[]).includes(rawCat)
         ? rawCat
         : 'Other';
+    const seoTitle = extractQuestionTitle(dto.body.trim());
     const question = await this.questionRepo.save(
       this.questionRepo.create({
         patientUserId,
-        title: dto.title,
+        title: seoTitle,
         body: dto.body,
         category,
         patientAgeGroup: dto.patientAgeGroup?.trim() || null,
@@ -235,7 +273,7 @@ export class QuestionsService implements OnModuleInit {
         status: QuestionStatus.OPEN,
       }),
     );
-    const forumSlug = buildForumSlug(question.title, question.id);
+    const forumSlug = buildForumSlug(seoTitle, question.id);
     await this.questionRepo.update({ id: question.id }, { forumSlug });
     question.forumSlug = forumSlug;
     await this.log(patientUserId, 'question.create', 'question', question.id, { category });
@@ -1271,12 +1309,7 @@ export class QuestionsService implements OnModuleInit {
     const cats = getCategoriesForForumSlug(categorySlug);
     if (!cats) throw new NotFoundException('Forum category not found.');
 
-    const isUuid =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(questionSlugOrId);
-
-    const question = isUuid
-      ? await this.questionRepo.findOne({ where: { id: questionSlugOrId } })
-      : await this.questionRepo.findOne({ where: { forumSlug: questionSlugOrId } });
+    const question = await this.findQuestionByPublicSlug(questionSlugOrId);
 
     if (!question || !cats.includes(question.category)) {
       throw new NotFoundException('Question not found.');
@@ -1366,12 +1399,7 @@ export class QuestionsService implements OnModuleInit {
     const cats = getCategoriesForForumSlug(categorySlug);
     if (!cats) throw new NotFoundException('Forum category not found.');
 
-    const isUuid =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(questionSlugOrId);
-
-    const question = isUuid
-      ? await this.questionRepo.findOne({ where: { id: questionSlugOrId } })
-      : await this.questionRepo.findOne({ where: { forumSlug: questionSlugOrId } });
+    const question = await this.findQuestionByPublicSlug(questionSlugOrId);
 
     if (!question || !cats.includes(question.category)) {
       throw new NotFoundException('Question not found.');
