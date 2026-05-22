@@ -383,7 +383,8 @@ export default function AdminPanelPage() {
   if (!isAuthenticated) {
     return (
       <main className="ap-gate-page">
-        <Seo title="Admin console" description="Platform admin sign-in for Q&A and SEO tools." canonicalPath="/admin/panel" />
+        <Seo title="Admin console" description="Platform admin sign-in for Q&A and SEO tools." canonicalPath="/forum/admin/panel"
+        noindex />
         <div className="content-wrap ap-gate-inner">
           <div className="ap-gate-card">
             <div className="ap-gate-accent" aria-hidden />
@@ -434,7 +435,8 @@ export default function AdminPanelPage() {
   if (user?.role !== 'admin' && user?.role !== 'superadmin') {
     return (
       <main className="ap-gate-page">
-        <Seo title="Admin console" description="Platform admin access." canonicalPath="/admin/panel" />
+        <Seo title="Admin console" description="Platform admin access." canonicalPath="/forum/admin/panel"
+        noindex />
         <div className="content-wrap ap-gate-inner">
           <div className="ap-gate-card ap-gate-card--notice">
             <div className="ap-gate-accent" aria-hidden />
@@ -538,7 +540,8 @@ export default function AdminPanelPage() {
 
   return (
     <main className={`admin-console${sidebarOpen ? ' admin-console--sidebar-open' : ''}`}>
-      <Seo title="Admin console" description="Platform dashboard, Q&A, and SEO." canonicalPath="/admin/panel" />
+      <Seo title="Admin console" description="Platform dashboard, Q&A, and SEO." canonicalPath="/forum/admin/panel"
+        noindex />
       <button
         type="button"
         className="admin-sidebar-backdrop"

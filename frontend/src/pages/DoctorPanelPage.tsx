@@ -145,7 +145,7 @@ export default function DoctorPanelPage() {
   if (!isAuthenticated) {
     return (
       <main className="dp-gate-page">
-        <Seo title="Doctor workspace" description="Sign in to review and answer patient questions." canonicalPath="/doctor/panel" />
+        <Seo title="Doctor workspace" description="Sign in to review and answer patient questions." canonicalPath="/forum/doctor/panel" noindex />
         <div className="content-wrap dp-gate-inner">
           <div className="dp-gate-card">
             <div className="dp-gate-accent" aria-hidden />
@@ -193,7 +193,7 @@ export default function DoctorPanelPage() {
   if (user?.role !== 'doctor') {
     return (
       <main className="dp-gate-page">
-        <Seo title="Doctor workspace" description="Doctor question queue and answer workspace." canonicalPath="/doctor/panel" />
+        <Seo title="Doctor workspace" description="Doctor question queue and answer workspace." canonicalPath="/forum/doctor/panel" noindex />
         <div className="content-wrap dp-gate-inner">
           <div className="dp-gate-card dp-gate-card--notice">
             <div className="dp-gate-icon-wrap dp-gate-icon-wrap--muted">
@@ -221,7 +221,7 @@ export default function DoctorPanelPage() {
 
   return (
     <main className="dp-page">
-      <Seo title="Doctor Panel" description="Doctor question queue and answer workspace." canonicalPath="/doctor/panel" />
+      <Seo title="Doctor Panel" description="Doctor question queue and answer workspace." canonicalPath="/forum/doctor/panel" noindex />
       <div className="content-wrap dp-inner">
         <header className="dp-head">
           <h1>Doctor workspace</h1>

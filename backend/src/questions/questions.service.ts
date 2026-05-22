@@ -25,7 +25,10 @@ import { buildForumSlug, extractQuestionTitle, forumSlugIdFragment } from '../co
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { CreateFollowupDto } from './dto/create-followup.dto';
 import { CreateQuestionDto, CREATABLE_QUESTION_CATEGORIES } from './dto/create-question.dto';
-import { FORUM_SLUG_TO_CATEGORIES, getCategoriesForForumSlug } from './forum-category-map';
+import {
+  FORUM_SLUG_TO_CATEGORIES,
+  getCategoriesForForumSlug,
+} from './forum-category-map';
 
 function forumViewDedupeWindowMs(): number {
   const hours = Number(process.env.FORUM_VIEW_DEDUPE_HOURS ?? '24');
@@ -1426,6 +1429,65 @@ export class QuestionsService implements OnModuleInit {
       }),
     );
     return { ok: true };
+  }
+
+  /** XML sitemap for Google — all published Q&A + category hubs (FORUM_PUBLIC_SITE_URL, default madhavbaug.org). */
+  async buildPublicForumSitemapXml(): Promise<string> {
+    const site = (process.env.FORUM_PUBLIC_SITE_URL ?? 'https://madhavbaug.org').replace(/\/$/, '');
+    const base = `${site}/forum`;
+
+    type UrlEntry = { loc: string; lastmod?: string; changefreq: string; priority: string };
+    const entries: UrlEntry[] = [
+      { loc: `${base}/`, changefreq: 'daily', priority: '1.0' },
+      { loc: `${base}/ask`, changefreq: 'monthly', priority: '0.85' },
+    ];
+
+    for (const categorySlug of Object.keys(FORUM_SLUG_TO_CATEGORIES)) {
+      entries.push({
+        loc: `${base}/${categorySlug}`,
+        changefreq: 'daily',
+        priority: '0.9',
+      });
+    }
+
+    const published = await this.questionRepo
+      .createQueryBuilder('q')
+      .where('q.forum_slug IS NOT NULL')
+      .andWhere('q.status = :st', { st: QuestionStatus.ANSWERED })
+      .andWhere(
+        `EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`,
+      )
+      .orderBy('q.updated_at', 'DESC')
+      .getMany();
+
+    for (const q of published) {
+      const catSlug = this.forumSlugForCategory(q.category);
+      if (!catSlug || !q.forumSlug) continue;
+      entries.push({
+        loc: `${base}/${catSlug}/${q.forumSlug}`,
+        lastmod: q.updatedAt.toISOString().slice(0, 10),
+        changefreq: 'weekly',
+        priority: '0.75',
+      });
+    }
+
+    const urlNodes = entries
+      .map((u) => {
+        const lastmod = u.lastmod ? `\n    <lastmod>${u.lastmod}</lastmod>` : '';
+        return `  <url>\n    <loc>${this.escapeXml(u.loc)}</loc>${lastmod}\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`;
+      })
+      .join('\n');
+
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlNodes}\n</urlset>\n`;
+  }
+
+  private escapeXml(s: string): string {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
   }
 
   private async log(

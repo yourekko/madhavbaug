@@ -8,8 +8,9 @@ import {
   Post,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { ForumReportDto } from './dto/forum-report.dto';
 import { isValidForumCategorySlug } from './forum-category-map';
 import { QuestionsService } from './questions.service';
@@ -26,6 +27,13 @@ export class ForumPublicController {
   @Get('home-feed')
   homeFeed() {
     return this.questionsService.getPublicHomeFeed();
+  }
+
+  @Get('sitemap.xml')
+  async sitemap(@Res() res: Response) {
+    const xml = await this.questionsService.buildPublicForumSitemapXml();
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.send(xml);
   }
 
   @Get(':categorySlug/questions')

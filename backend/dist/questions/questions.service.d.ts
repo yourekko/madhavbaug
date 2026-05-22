@@ -338,5 +338,7 @@ export declare class QuestionsService implements OnModuleInit {
     submitPublicForumReport(categorySlug: string, questionSlugOrId: string, message: string): Promise<{
         ok: boolean;
     }>;
+    buildPublicForumSitemapXml(): Promise<string>;
+    private escapeXml;
     private log;
 }

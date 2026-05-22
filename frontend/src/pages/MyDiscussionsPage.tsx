@@ -173,7 +173,8 @@ export default function MyDiscussionsPage() {
           <Seo
             title="My Discussions"
             description="Track your doctor answers and follow-up responses."
-            canonicalPath="/my-discussions"
+            canonicalPath="/forum/my-discussions"
+            noindex
           />
           <div className="md-guest">
             <h1>My Discussions</h1>
@@ -190,7 +191,8 @@ export default function MyDiscussionsPage() {
         <Seo
           title="My Discussions"
           description="Track your doctor answers and follow-up responses."
-          canonicalPath="/my-discussions"
+          canonicalPath="/forum/my-discussions"
+            noindex
         />
 
         <header className="md-head">

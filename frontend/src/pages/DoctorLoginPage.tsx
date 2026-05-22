@@ -48,7 +48,8 @@ export default function DoctorLoginPage() {
       <Seo
         title="Doctor Login"
         description="Login for doctors with email and password."
-        canonicalPath="/doctor-login"
+        canonicalPath="/forum/doctor-login"
+        noindex
       />
       <section className="doctor-auth-card doctor-auth-card-narrow">
         <header className="doctor-auth-header">

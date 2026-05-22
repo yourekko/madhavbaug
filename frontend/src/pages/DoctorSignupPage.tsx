@@ -163,7 +163,8 @@ export default function DoctorSignupPage() {
       <Seo
         title="Doctor Sign Up"
         description="Create a doctor account with credentials, profile details, and clinical experience."
-        canonicalPath="/doctor-signup"
+        canonicalPath="/forum/doctor-signup"
+        noindex
       />
       <section className="doctor-auth-card doctor-auth-card-wide">
         <header className="doctor-auth-header doctor-signup-header">

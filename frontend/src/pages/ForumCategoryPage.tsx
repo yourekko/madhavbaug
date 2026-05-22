@@ -24,6 +24,9 @@ import {
 } from '../data/forumData';
 import { fetchForumQuestionList, fetchForumStats, type ForumListItem, type ForumStats } from '../lib/forumPublicApi';
 import { forumQuestionPath } from '../lib/questionSlug';
+import { forumCategoryKeywords } from '../seo/forumQuestionSeo';
+import { forumCategoryJsonLd } from '../seo/jsonLd';
+import { seoPublicPath } from '../seo/seoPaths';
 import { formatShortAgo } from '../lib/formatShortAgo';
 import '../Forum.css';
 
@@ -88,7 +91,13 @@ export function ForumCategoryPage() {
 
   return (
     <div className="forum-page">
-      <Seo title={meta.pageTitle} description={meta.description} canonicalPath={`/forum/${slug}`} />
+      <Seo
+        title={meta.pageTitle}
+        description={meta.description}
+        canonicalPath={seoPublicPath(`/forum/${slug}`)}
+        keywords={forumCategoryKeywords(slug)}
+        jsonLd={forumCategoryJsonLd(slug, meta.pageTitle, meta.description)}
+      />
       <section className="forum-hero">
         <div className="forum-hero-inner">
           <nav className="forum-breadcrumb" aria-label="Breadcrumb">

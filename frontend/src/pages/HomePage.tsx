@@ -19,6 +19,7 @@ import { MdBloodtype } from 'react-icons/md';
 import { Seo } from '../components/Seo';
 import { useAuthModal } from '../context/AuthModalContext';
 import { seoConfig } from '../seo/seoConfig';
+import { seoPublicPath } from '../seo/seoPaths';
 import { Reveal } from '../components/Reveal';
 import { fetchForumStats, fetchHomeFeed, type HomeFeedResponse } from '../lib/forumPublicApi';
 import { forumQuestionPath } from '../lib/questionSlug';
@@ -280,7 +281,12 @@ export default function HomePage() {
 
   return (
     <>
-      <Seo title="Home" description={seoConfig.defaultDescription} canonicalPath="/" />
+      <Seo
+        title="Ask Doctors Health Questions — Diabetes, Heart, BP & More"
+        description={seoConfig.defaultDescription}
+        canonicalPath={seoPublicPath('/forum')}
+        keywords="health forum India, ask doctor online, diabetes questions, heart health advice, medical Q&A, Madhavbaug"
+      />
       <Reveal as="section" className="hero hero-reveal">
         <div className="content-wrap">
           <h2>Ask a Health Question</h2>

@@ -1,4 +1,4 @@
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { ForumReportDto } from './dto/forum-report.dto';
 import { QuestionsService } from './questions.service';
 export declare class ForumPublicController {
@@ -52,6 +52,7 @@ export declare class ForumPublicController {
             } | null;
         }[];
     }>;
+    sitemap(res: Response): Promise<void>;
     list(categorySlug: string, page?: string, limit?: string, search?: string, filter?: string, sort?: string): Promise<{
         items: {
             slug: string;

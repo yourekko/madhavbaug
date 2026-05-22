@@ -28,6 +28,11 @@ let ForumPublicController = class ForumPublicController {
     homeFeed() {
         return this.questionsService.getPublicHomeFeed();
     }
+    async sitemap(res) {
+        const xml = await this.questionsService.buildPublicForumSitemapXml();
+        res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+        res.send(xml);
+    }
     list(categorySlug, page, limit, search, filter, sort) {
         if (!(0, forum_category_map_1.isValidForumCategorySlug)(categorySlug))
             throw new common_1.NotFoundException();
@@ -59,6 +64,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], ForumPublicController.prototype, "homeFeed", null);
+__decorate([
+    (0, common_1.Get)('sitemap.xml'),
+    __param(0, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ForumPublicController.prototype, "sitemap", null);
 __decorate([
     (0, common_1.Get)(':categorySlug/questions'),
     __param(0, (0, common_1.Param)('categorySlug')),

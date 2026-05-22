@@ -21,6 +21,7 @@ import { useSession } from '../context/SessionContext';
 import { useToast } from '../context/ToastContext';
 import { extractQuestionTitle } from '../lib/questionSlug';
 import { apiRequest } from '../lib/api';
+import { seoPublicPath } from '../seo/seoPaths';
 import { QUESTION_CATEGORY_OPTIONS, QUESTION_CATEGORY_PLACEHOLDER } from '../constants/questionCategories';
 import '../AskQuestion.css';
 
@@ -137,7 +138,8 @@ export default function AskQuestionPage() {
       <Seo
         title="Ask a Doctor"
         description="Submit your health question for a doctor-reviewed answer. Confidential, structured form with category and history fields."
-        canonicalPath="/ask"
+        canonicalPath={seoPublicPath('/forum/ask')}
+        keywords="ask doctor online, submit health question, free medical advice India, Madhavbaug forum"
       />
       <Reveal as="div" className="ask-hero-wrap">
         <main className="ask-main">

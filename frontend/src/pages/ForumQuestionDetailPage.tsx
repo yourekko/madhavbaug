@@ -12,6 +12,12 @@ import {
 } from '../data/forumData';
 import { fetchForumQuestionDetail, submitForumReport, type ForumDetailResponse } from '../lib/forumPublicApi';
 import { forumQuestionPath } from '../lib/questionSlug';
+import {
+  buildForumQuestionSeoDescription,
+  buildForumQuestionSeoTitle,
+  forumCategoryKeywords,
+} from '../seo/forumQuestionSeo';
+import { forumQuestionPageJsonLd } from '../seo/jsonLd';
 import { formatShortAgo } from '../lib/formatShortAgo';
 import { isForumQuestionSaved, toggleForumSaved } from '../lib/forumSavedQuestions';
 import '../Forum.css';
@@ -194,9 +200,14 @@ export function ForumQuestionDetailPage() {
     );
   }
 
-  const titleSeg = truncateMeta(detail.body, 72);
-  const descSeg = truncateMeta(detail.body, 160);
+  const seoTitle = buildForumQuestionSeoTitle(meta.title, detail.body);
+  const seoDescription = buildForumQuestionSeoDescription(detail.body, {
+    answerCount: detail.answers.length,
+    doctorName: detail.answers[0]?.doctor.name,
+  });
   const breadcrumbLeaf = truncateMeta(detail.body, 48);
+  const lastModified =
+    detail.answers[detail.answers.length - 1]?.createdAt ?? detail.createdAt;
 
   const canonicalPath = forumQuestionPath(slug, detail.slug);
   if (questionSlug && questionSlug !== detail.slug) {
@@ -206,10 +217,14 @@ export function ForumQuestionDetailPage() {
   return (
     <div className="forum-page forum-detail">
       <Seo
-        title={titleSeg}
-        description={descSeg}
+        title={seoTitle}
+        description={seoDescription}
         canonicalPath={canonicalPath}
         ogType="article"
+        keywords={forumCategoryKeywords(slug)}
+        publishedTime={detail.createdAt}
+        modifiedTime={lastModified}
+        jsonLd={forumQuestionPageJsonLd(slug, detail)}
       />
       <div className="forum-shell forum-detail-shell">
         <div className="forum-detail-main">

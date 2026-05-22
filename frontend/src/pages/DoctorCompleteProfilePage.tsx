@@ -165,6 +165,7 @@ export default function DoctorCompleteProfilePage() {
         title="Complete doctor profile"
         description="Finish your professional details after signing in with Google."
         canonicalPath="/forum/doctor/complete-profile"
+        noindex
       />
       <section className="doctor-auth-card doctor-auth-card-wide">
         <header className="doctor-auth-header">

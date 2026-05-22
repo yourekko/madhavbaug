@@ -53,6 +53,7 @@ export default function CompletePatientPhonePage() {
         title="Add your phone number"
         description="Complete your Madhavbaug account with a mobile number after signing in with Google."
         canonicalPath="/forum/complete-phone"
+        noindex
       />
       <section className="doctor-auth-card doctor-auth-card-narrow">
         <header className="doctor-auth-header">
