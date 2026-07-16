@@ -512,7 +512,7 @@ export class QuestionsService implements OnModuleInit {
       .leftJoinAndSelect('q.answers', 'answers')
       .leftJoinAndSelect('q.assignments', 'assignments')
       .leftJoinAndSelect('q.patientUser', 'patient')
-      .orderBy('q.created_at', 'DESC')
+      .orderBy('q.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
     if (status) qb.andWhere('q.status = :status', { status });
