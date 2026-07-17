@@ -1,7 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from '../common/enums/role.enum';
+import { AuditLog } from '../entities/audit-log.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { User } from '../entities/user.entity';
 
@@ -36,6 +37,8 @@ export class UsersService {
     private readonly usersRepo: Repository<User>,
     @InjectRepository(DoctorProfile)
     private readonly profileRepo: Repository<DoctorProfile>,
+    @InjectRepository(AuditLog)
+    private readonly auditRepo: Repository<AuditLog>,
   ) {}
 
   findByEmailOrPhone(email: string | null, phone: string | null) {
@@ -130,8 +133,49 @@ export class UsersService {
 
   getDoctors() {
     return this.usersRepo.find({
-      where: { role: Role.DOCTOR },
+      where: { role: Role.DOCTOR, isActive: true },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async adminSetUserActive(adminUserId: string, targetUserId: string, isActive: boolean) {
+    if (adminUserId === targetUserId) {
+      throw new BadRequestException('You cannot change your own account status.');
+    }
+
+    const target = await this.usersRepo.findOne({ where: { id: targetUserId } });
+    if (!target) throw new NotFoundException('User not found.');
+    if (target.role === Role.ADMIN || target.role === Role.SUPERADMIN) {
+      throw new ForbiddenException('Admin accounts cannot be deactivated from the panel.');
+    }
+    if (target.role !== Role.PATIENT && target.role !== Role.DOCTOR) {
+      throw new BadRequestException('Only patient and doctor accounts can be managed here.');
+    }
+    if (target.isActive === isActive) {
+      return {
+        ok: true,
+        userId: target.id,
+        role: target.role,
+        isActive: target.isActive,
+      };
+    }
+
+    await this.usersRepo.update({ id: targetUserId }, { isActive });
+    await this.auditRepo.save(
+      this.auditRepo.create({
+        actorUserId: adminUserId,
+        action: isActive ? 'user.reactivate' : 'user.deactivate',
+        entityType: 'user',
+        entityId: targetUserId,
+        payloadJson: { role: target.role, name: target.name, email: target.email, phone: target.phone },
+      }),
+    );
+
+    return {
+      ok: true,
+      userId: target.id,
+      role: target.role,
+      isActive,
+    };
   }
 }

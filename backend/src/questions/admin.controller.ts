@@ -10,6 +10,7 @@ import { UsersService } from '../users/users.service';
 import { AssignDoctorDto } from './dto/assign-doctor.dto';
 import { UpdateQuestionStatusDto } from './dto/update-question-status.dto';
 import { QuestionsService } from './questions.service';
+import { SetUserActiveDto } from '../users/dto/set-user-active.dto';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -68,5 +69,10 @@ export class AdminController {
   @Get('reports/patients')
   patientReports() {
     return this.questionsService.adminPatientAnalytics();
+  }
+
+  @Patch('users/:id/active')
+  setUserActive(@Param('id') id: string, @Body() dto: SetUserActiveDto, @CurrentUser() user: JwtPayload) {
+    return this.usersService.adminSetUserActive(user.sub, id, dto.isActive);
   }
 }

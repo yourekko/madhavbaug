@@ -90,6 +90,7 @@ type DoctorAnalytics = {
   whatsappNumber: string | null;
   branchName: string | null;
   profileLink: string | null;
+  isActive: boolean;
   totalAnswers: number;
   answersLast30Days: number;
   assignedQuestions: number;
@@ -356,6 +357,34 @@ export default function AdminPanelPage() {
       await loadAll();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete question.');
+    }
+  }
+
+  async function setUserActive(userId: string, name: string, role: 'patient' | 'doctor', isActive: boolean) {
+    if (!token) return;
+    const action = isActive ? 'reactivate' : 'deactivate';
+    const label = role === 'doctor' ? 'doctor' : 'patient';
+    if (
+      !window.confirm(
+        `${isActive ? 'Reactivate' : 'Deactivate'} ${label} "${name}"?\n\n${
+          isActive
+            ? 'They will be able to sign in again.'
+            : 'They will not be able to sign in. Their questions and answers stay in the system.'
+        }`,
+      )
+    ) {
+      return;
+    }
+    try {
+      setError(null);
+      await apiRequest<{ ok: boolean }>(
+        `/admin/users/${userId}/active`,
+        { method: 'PATCH', body: JSON.stringify({ isActive }) },
+        token,
+      );
+      await loadAll();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Could not ${action} user.`);
     }
   }
 
@@ -727,12 +756,13 @@ export default function AdminPanelPage() {
                         <th>Assigned</th>
                         <th>Top categories</th>
                         <th>Last active</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {doctorReports.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="admin-table-empty">
+                          <td colSpan={7} className="admin-table-empty">
                             No doctor analytics found.
                           </td>
                         </tr>
@@ -747,12 +777,42 @@ export default function AdminPanelPage() {
                               <div className="admin-td-strong">{doctor.doctorName}</div>
                               <div className="admin-td-muted">{doctor.email ?? doctor.whatsappNumber ?? '—'}</div>
                               <div className="admin-td-muted">{doctor.branchName ?? 'No branch set'}</div>
+                              {doctor.isActive === false ? (
+                                <span className="admin-qa-account-flag admin-qa-account-flag--inactive">Inactive</span>
+                              ) : null}
                             </td>
                             <td>{doctor.totalAnswers}</td>
                             <td>{doctor.answersLast30Days}</td>
                             <td>{doctor.assignedQuestions}</td>
                             <td className="admin-td-muted">{topCategoriesText(doctor.categoriesAnswered)}</td>
                             <td className="admin-td-muted">{formatCompactDate(doctor.lastAnswerAt)}</td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              {doctor.isActive === false ? (
+                                <button
+                                  type="button"
+                                  className="admin-btn-secondary"
+                                  onClick={() =>
+                                    setUserActive(doctor.doctorUserId, doctor.doctorName, 'doctor', true).catch(
+                                      () => undefined,
+                                    )
+                                  }
+                                >
+                                  Reactivate
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="admin-btn-danger"
+                                  onClick={() =>
+                                    setUserActive(doctor.doctorUserId, doctor.doctorName, 'doctor', false).catch(
+                                      () => undefined,
+                                    )
+                                  }
+                                >
+                                  Deactivate
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))
                       )}
@@ -910,18 +970,19 @@ export default function AdminPanelPage() {
                         <th>Follow-ups</th>
                         <th>Top categories</th>
                         <th>Last question</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {patientReports.length === 0 ? (
                         <tr>
-                          <td colSpan={14} className="admin-table-empty">
+                          <td colSpan={15} className="admin-table-empty">
                             No patient analytics found.
                           </td>
                         </tr>
                       ) : filteredPatientReports.length === 0 ? (
                         <tr>
-                          <td colSpan={14} className="admin-table-empty">
+                          <td colSpan={15} className="admin-table-empty">
                             No patients match this category filter.
                           </td>
                         </tr>
@@ -963,6 +1024,33 @@ export default function AdminPanelPage() {
                             <td>{patient.followups}</td>
                             <td className="admin-td-muted">{topCategoriesText(patient.categoriesAsked)}</td>
                             <td className="admin-td-muted">{formatCompactDate(patient.lastQuestionAt)}</td>
+                            <td>
+                              {patient.isActive === false ? (
+                                <button
+                                  type="button"
+                                  className="admin-btn-secondary"
+                                  onClick={() =>
+                                    setUserActive(patient.patientUserId, patient.patientName, 'patient', true).catch(
+                                      () => undefined,
+                                    )
+                                  }
+                                >
+                                  Reactivate
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="admin-btn-danger"
+                                  onClick={() =>
+                                    setUserActive(patient.patientUserId, patient.patientName, 'patient', false).catch(
+                                      () => undefined,
+                                    )
+                                  }
+                                >
+                                  Deactivate
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))
                       )}

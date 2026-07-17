@@ -88,6 +88,7 @@ export class AuthService {
     }
     const user = await this.usersService.findByEmailOrPhone(input.email ?? null, input.phone ?? null);
     if (!user) throw new UnauthorizedException('Invalid credentials.');
+    if (!user.isActive) throw new UnauthorizedException('This account has been deactivated.');
     const ok = await bcrypt.compare(input.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials.');
     await this.recordAuthAudit(user.id, 'auth.login', { role: user.role });
@@ -118,6 +119,7 @@ export class AuthService {
 
     let user = await this.usersService.findByGoogleSub(sub);
     if (user) {
+      if (!user.isActive) throw new UnauthorizedException('This account has been deactivated.');
       if (user.role !== targetRole) {
         throw new BadRequestException('This Google account is already linked to a different account type.');
       }
@@ -127,6 +129,7 @@ export class AuthService {
 
     const existingByEmail = await this.usersService.findByEmailOrPhone(email, null);
     if (existingByEmail) {
+      if (!existingByEmail.isActive) throw new UnauthorizedException('This account has been deactivated.');
       if (existingByEmail.role !== targetRole) {
         throw new BadRequestException('An account with this email already exists with a different role.');
       }
@@ -246,6 +249,7 @@ export class AuthService {
 
   async getMe(userId: string) {
     const user = await this.usersService.getById(userId);
+    if (!user.isActive) throw new ForbiddenException('This account has been deactivated.');
     const profile = user.role === Role.DOCTOR ? await this.usersService.getDoctorProfileByUserId(user.id) : null;
     const needsPatientPhone = user.role === Role.PATIENT && !user.phone;
     const needsDoctorProfile = user.role === Role.DOCTOR && ((!!profile && profile.profileCompleted === false) || !user.phone);

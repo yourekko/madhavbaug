@@ -815,6 +815,7 @@ export class QuestionsService implements OnModuleInit {
         doctorName: doctor.name,
         email: doctor.email,
         phone: doctor.phone,
+        isActive: doctor.isActive,
         whatsappNumber: doctor.doctorProfile?.whatsappNumber ?? null,
         branchName: doctor.doctorProfile?.branchName ?? null,
         profileLink: doctor.doctorProfile?.profileLink ?? null,
