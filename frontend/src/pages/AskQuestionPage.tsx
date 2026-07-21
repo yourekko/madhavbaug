@@ -37,11 +37,11 @@ const sidebarDoctors = [
 ];
 
 const popularTopics = [
-  'Heart',
   'Diabetes',
+  'Heart',
   'Hypertension',
   'Weight Loss',
-  'Thyroid',
+  'Lifestyle & Diet',
 ];
 
 const faqItems = [
@@ -297,7 +297,7 @@ export default function AskQuestionPage() {
                 <ul className="ask-topic-chips">
                   {popularTopics.map((t) => (
                     <li key={t}>
-                      <button type="button" className="ask-topic-chip">
+                      <button type="button" className="ask-topic-chip" onClick={() => setCategory(t)}>
                         {t}
                         <FaArrowRight aria-hidden />
                       </button>

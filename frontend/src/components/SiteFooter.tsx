@@ -45,19 +45,19 @@ export default function SiteFooter() {
             <h4>Forum Categories</h4>
             <ul className="footer-links">
               <li>
-                <Link to="/forum/diabetes-management">Diabetes Reversal</Link>
+                <Link to="/forum/diabetes-management">Diabetes Management</Link>
               </li>
               <li>
-                <a href="#heart">Heart Health</a>
+                <Link to="/forum/heart-disease-heart-blockage">Heart Disease &amp; Blockage</Link>
               </li>
               <li>
-                <a href="#weight">Weight Management</a>
+                <Link to="/forum/obesity-metabolic-health">Obesity &amp; Metabolic Health</Link>
               </li>
               <li>
-                <a href="#hypertension">Hypertension</a>
+                <Link to="/forum/hypertension-high-blood-pressure">Hypertension</Link>
               </li>
               <li>
-                <a href="#ayurveda">Ayurveda Basics</a>
+                <Link to="/forum/lifestyle-disorders-preventive">Lifestyle &amp; Prevention</Link>
               </li>
             </ul>
           </div>

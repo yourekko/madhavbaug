@@ -580,10 +580,23 @@ nav button:hover,
   padding:22px;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
+a.topic-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
 .topic-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 14px 32px rgba(15, 23, 42, 0.09);
   border-color:#dbe0e6;
+}
+a.tag-link {
+  text-decoration: none;
+  color: inherit;
+}
+a.tag-link:hover {
+  filter: brightness(0.96);
 }
 .topic-icon { width:42px; height:42px; border-radius:10px; display:grid; place-items:center; background:var(--brand-mist-2); color:var(--brand-red); margin-bottom:14px; }
 .topic-card h4 { margin:0 0 8px; font-size:18px; }

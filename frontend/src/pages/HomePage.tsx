@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FaArrowRight,
@@ -18,20 +18,49 @@ import {
 import { MdBloodtype } from 'react-icons/md';
 import { Seo } from '../components/Seo';
 import { useAuthModal } from '../context/AuthModalContext';
+import { useSession } from '../context/SessionContext';
 import { seoConfig } from '../seo/seoConfig';
 import { seoPublicPath } from '../seo/seoPaths';
 import { Reveal } from '../components/Reveal';
 import { fetchForumStats, fetchHomeFeed, type HomeFeedResponse } from '../lib/forumPublicApi';
+import { forumPathForCategoryLabel } from '../lib/forumCategorySlug';
 import { forumQuestionPath } from '../lib/questionSlug';
+import {
+  DEFAULT_FORUM_SLUG,
+  FORUM_NAV_ITEMS,
+  type ForumCategorySlug,
+} from '../data/forumData';
 
-const topics = [
-  ['Diabetes Management', 'Blood sugar control, diet plans, lifestyle modifications', '1,247 Questions', <MdBloodtype />],
-  ['Heart Health', 'Cardiac care, cholesterol, heart disease prevention', '892 Questions', <FaHeartPulse />],
-  ['Blood Pressure', 'Hypertension management, BP control strategies', '756 Questions', <FaCircleCheck />],
-  ['Weight Management', 'Obesity treatment, healthy weight loss, metabolism', '634 Questions', <FaWeightScale />],
-  ['Lifestyle & Wellness', 'Daily routines, stress management, mental health', '521 Questions', <FaLeaf />],
-  ['Ayurveda Basics', 'Traditional treatments, herbal remedies, dosha balance', '489 Questions', <FaLeaf />],
-] as const;
+const TOPIC_CARD_META: Record<
+  ForumCategorySlug,
+  { shortTitle: string; description: string; icon: ReactNode }
+> = {
+  'diabetes-management': {
+    shortTitle: 'Diabetes Management',
+    description: 'Blood sugar control, diet plans, lifestyle modifications',
+    icon: <MdBloodtype />,
+  },
+  'heart-disease-heart-blockage': {
+    shortTitle: 'Heart Disease & Blockage',
+    description: 'Cardiac care, cholesterol, heart disease prevention',
+    icon: <FaHeartPulse />,
+  },
+  'hypertension-high-blood-pressure': {
+    shortTitle: 'Hypertension',
+    description: 'Hypertension management, BP control strategies',
+    icon: <FaCircleCheck />,
+  },
+  'obesity-metabolic-health': {
+    shortTitle: 'Obesity & Metabolic Health',
+    description: 'Obesity treatment, healthy weight loss, metabolism',
+    icon: <FaWeightScale />,
+  },
+  'lifestyle-disorders-preventive': {
+    shortTitle: 'Lifestyle & Prevention',
+    description: 'Daily routines, stress management, preventive health',
+    icon: <FaLeaf />,
+  },
+};
 
 const experts = [
   ['Dr. Rajesh Sharma', 'MD Ayurveda, Diabetes Specialist', '15+ Years Experience', 'BAMS, MD (Ayurveda)', 'Senior Consultant', '342 Answers'],
@@ -191,6 +220,8 @@ function getCategoryTagClass(category: string): '' | 'blue' | 'orange' | 'red' {
 export default function HomePage() {
   const navigate = useNavigate();
   const { openAuth } = useAuthModal();
+  const { user } = useSession();
+  const isDoctor = user?.role === 'doctor';
   const [trendTab, setTrendTab] = useState<TrendTab>('latest');
   const [heroQuestion, setHeroQuestion] = useState('');
   const [heroQError, setHeroQError] = useState(false);
@@ -329,35 +360,28 @@ export default function HomePage() {
         <div className="content-wrap">
           <div className="section-head section-head-reveal">
             <h3>Browse by Health Topics</h3>
-            <a href="#categories">View All Categories</a>
+            <Link to={`/forum/${DEFAULT_FORUM_SLUG}`}>View All Categories</Link>
           </div>
           <div className="topic-grid">
-            {topics.map(([title, desc, fallbackCount, icon]) => (
-              <article key={title} className="topic-card">
-                <div className="topic-icon">{icon}</div>
-                <h4>{title}</h4>
-                <p>{desc}</p>
-                <div className="topic-meta">
-                  <span>
-                    {(title === 'Diabetes Management' && topicCounts['diabetes-management']) ||
-                    (title === 'Heart Health' && topicCounts['heart-disease-heart-blockage']) ||
-                    (title === 'Blood Pressure' && topicCounts['hypertension-high-blood-pressure']) ||
-                    (title === 'Weight Management' && topicCounts['obesity-metabolic-health']) ||
-                    (title === 'Lifestyle & Wellness' && topicCounts['lifestyle-disorders-preventive'])
-                      ? `${(
-                          (title === 'Diabetes Management' && topicCounts['diabetes-management']) ||
-                          (title === 'Heart Health' && topicCounts['heart-disease-heart-blockage']) ||
-                          (title === 'Blood Pressure' && topicCounts['hypertension-high-blood-pressure']) ||
-                          (title === 'Weight Management' && topicCounts['obesity-metabolic-health']) ||
-                          (title === 'Lifestyle & Wellness' && topicCounts['lifestyle-disorders-preventive']) ||
-                          0
-                        ).toLocaleString()} Questions`
-                      : fallbackCount}
-                  </span>
-                  <FaArrowRight />
-                </div>
-              </article>
-            ))}
+            {FORUM_NAV_ITEMS.map((item) => {
+              const meta = TOPIC_CARD_META[item.slug];
+              const count = topicCounts[item.slug];
+              return (
+                <Link key={item.slug} to={`/forum/${item.slug}`} className="topic-card">
+                  <div className="topic-icon">{meta.icon}</div>
+                  <h4>{meta.shortTitle}</h4>
+                  <p>{meta.description}</p>
+                  <div className="topic-meta">
+                    <span>
+                      {typeof count === 'number'
+                        ? `${count.toLocaleString()} Questions`
+                        : 'Browse questions'}
+                    </span>
+                    <FaArrowRight />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </Reveal>
@@ -410,9 +434,15 @@ export default function HomePage() {
               <span>
                 <FaShieldHeart /> Evidence indicator
               </span>
-              <a href={quickAnswer?.questionSlug && quickAnswer?.categorySlug ? forumQuestionPath(quickAnswer.categorySlug, quickAnswer.questionSlug) : '#'}>
-                Expand full explanation <FaChevronDown />
-              </a>
+              {quickAnswer?.questionSlug && quickAnswer?.categorySlug ? (
+                <Link to={forumQuestionPath(quickAnswer.categorySlug, quickAnswer.questionSlug)}>
+                  Expand full explanation <FaChevronDown />
+                </Link>
+              ) : (
+                <Link to="/forum/ask">
+                  Ask a related question <FaChevronDown />
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -450,7 +480,12 @@ export default function HomePage() {
             {orderedTrending.map((item, index) => (
               <article key={item.id} className="trend-card" style={{ animationDelay: `${index * 0.06}s` }}>
                 <div className="trend-top">
-                  <span className={`tag ${getCategoryTagClass(item.category)}`.trim()}>{item.category}</span>
+                  <Link
+                    to={forumPathForCategoryLabel(item.category)}
+                    className={`tag tag-link ${getCategoryTagClass(item.category)}`.trim()}
+                  >
+                    {item.category}
+                  </Link>
                   {item.status === 'answered' ? (
                     <span className="status">
                       <FaCircleCheck aria-hidden /> Doctor Answered
@@ -467,9 +502,15 @@ export default function HomePage() {
                     <FaClock aria-hidden /> {formatDaysAgo(daysAgoFromIso(item.createdAt))}
                   </span>
                   {item.status === 'pending' ? (
-                    <Link to="/forum/ask" className="answer-btn answer-btn-link">
-                      Answer Question
-                    </Link>
+                    isDoctor ? (
+                      <Link to="/forum/doctor/panel" className="answer-btn answer-btn-link">
+                        Answer Question
+                      </Link>
+                    ) : (
+                      <Link to={item.questionHref} className="answer-btn answer-btn-link">
+                        View Question
+                      </Link>
+                    )
                   ) : (
                     <Link to={item.questionHref} className="answer-btn answer-btn-link">
                       Read Full Answer
@@ -512,9 +553,9 @@ export default function HomePage() {
         <div className="content-wrap">
           <div className="section-head recent-head-reveal">
             <h3>Recently Answered</h3>
-            <a href="#">
+            <Link to={`/forum/${DEFAULT_FORUM_SLUG}`}>
               View All Answers <FaArrowRight />
-            </a>
+            </Link>
           </div>
           <p className="muted">Latest doctor-verified responses</p>
           <div className="recent-grid">
@@ -531,13 +572,16 @@ export default function HomePage() {
                 <h4 className="trend-q-body">{r.body ?? r.title}</h4>
                 <div className="recent-bottom">
                   <span>
-                    {r.category} • <FaEye /> {r.views.toLocaleString()}
+                    <Link to={forumPathForCategoryLabel(r.category)} className="tag-link">
+                      {r.category}
+                    </Link>{' '}
+                    • <FaEye /> {r.views.toLocaleString()}
                   </span>
                   <Link
                     to={
                       r.questionSlug && r.categorySlug
                         ? forumQuestionPath(r.categorySlug, r.questionSlug)
-                        : '/forum/ask'
+                        : forumPathForCategoryLabel(r.category)
                     }
                   >
                     Read Full Answer
