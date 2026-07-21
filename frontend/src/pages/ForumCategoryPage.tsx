@@ -48,6 +48,7 @@ export function ForumCategoryPage() {
   const [items, setItems] = useState<ForumListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [slowLoad, setSlowLoad] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const apiFilter = filter === 'open' ? 'open' : 'answered';
@@ -55,7 +56,9 @@ export function ForumCategoryPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSlowLoad(false);
     setError(null);
+    const slowTimer = window.setTimeout(() => setSlowLoad(true), 4000);
     try {
       const [statsRes, listRes] = await Promise.all([
         fetchForumStats().catch(() => ({} as ForumStats)),
@@ -75,6 +78,8 @@ export function ForumCategoryPage() {
       setItems([]);
       setTotal(0);
     } finally {
+      window.clearTimeout(slowTimer);
+      setSlowLoad(false);
       setLoading(false);
     }
   }, [slug, page, searchQuery, apiFilter, apiSort]);
@@ -166,16 +171,34 @@ export function ForumCategoryPage() {
 
         {error ? (
           <p className="forum-api-error" style={{ color: '#b91c1c', margin: '0 0 16px' }}>
-            {error}
+            {error}{' '}
+            <button type="button" className="forum-link-btn" onClick={() => load().catch(() => {})}>
+              Retry
+            </button>
           </p>
         ) : null}
 
         <div className="forum-layout">
           <div className="forum-main">
             {loading ? (
-              <p className="forum-loading" style={{ color: '#64748b' }}>
-                Loading questions…
-              </p>
+              <div className="forum-loading" style={{ color: '#64748b' }}>
+                <p style={{ margin: 0 }}>Loading questions…</p>
+                {slowLoad ? (
+                  <p style={{ margin: '8px 0 0', fontSize: 14 }}>
+                    The API server is waking up (free hosting). This can take up to a minute — hang tight.
+                  </p>
+                ) : null}
+                {error ? null : (
+                  <button
+                    type="button"
+                    className="forum-empty-btn forum-empty-btn-ghost"
+                    style={{ marginTop: 12 }}
+                    onClick={() => load().catch(() => {})}
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
             ) : items.length === 0 ? (
               <div className="forum-empty-state">
                 <div className="forum-empty-state-inner">

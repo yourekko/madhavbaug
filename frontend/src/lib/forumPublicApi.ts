@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './api';
+import { fetchWithRetry } from './fetchWithRetry';
 import { getOrCreateForumViewerId } from './forumViewerId';
 
 export type ForumStats = Record<string, { answered: number; open: number }>;
@@ -106,14 +107,14 @@ async function parseJson(res: Response) {
 }
 
 export async function fetchForumStats(): Promise<ForumStats> {
-  const res = await fetch(`${API_BASE_URL}/public/forum/stats`);
+  const res = await fetchWithRetry(`${API_BASE_URL}/public/forum/stats`);
   const body = await parseJson(res);
   if (!res.ok) throw new Error('Could not load forum stats.');
   return body as ForumStats;
 }
 
 export async function fetchHomeFeed(): Promise<HomeFeedResponse> {
-  const res = await fetch(`${API_BASE_URL}/public/forum/home-feed`);
+  const res = await fetchWithRetry(`${API_BASE_URL}/public/forum/home-feed`);
   const body = await parseJson(res);
   if (!res.ok) throw new Error('Could not load home feed.');
   return body as HomeFeedResponse;
@@ -135,7 +136,7 @@ export async function fetchForumQuestionList(
   if (opts.search?.trim()) q.set('search', opts.search.trim());
   if (opts.filter) q.set('filter', opts.filter);
   if (opts.sort === 'views') q.set('sort', 'views');
-  const res = await fetch(`${API_BASE_URL}/public/forum/${categorySlug}/questions?${q.toString()}`);
+  const res = await fetchWithRetry(`${API_BASE_URL}/public/forum/${categorySlug}/questions?${q.toString()}`);
   const body = await parseJson(res);
   if (!res.ok) throw new Error('Could not load forum questions.');
   return body as ForumListResponse;
@@ -146,7 +147,7 @@ export async function fetchForumQuestionDetail(
   questionSlug: string,
 ): Promise<ForumDetailResponse | null> {
   const viewerId = getOrCreateForumViewerId();
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${API_BASE_URL}/public/forum/${categorySlug}/questions/${encodeURIComponent(questionSlug)}`,
     {
       headers: { 'X-Forum-Viewer-Id': viewerId },
