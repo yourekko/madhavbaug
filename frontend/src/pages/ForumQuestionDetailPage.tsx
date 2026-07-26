@@ -109,6 +109,19 @@ export function ForumQuestionDetailPage() {
     setSaved(isForumQuestionSaved(slug, detail.slug));
   }, [slugValid, slug, detail]);
 
+  // Deep-link to a specific doctor answer (#answer-{id}) for share / SEO anchors
+  useEffect(() => {
+    if (!detail || typeof window === 'undefined') return;
+    const hash = window.location.hash.replace(/^#/, '');
+    if (!hash.startsWith('answer-')) return;
+    const el = document.getElementById(hash);
+    if (el) {
+      window.requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [detail]);
+
   useEffect(() => {
     if (!reportOpen) return;
     const prev = document.body.style.overflow;
@@ -200,10 +213,12 @@ export function ForumQuestionDetailPage() {
     );
   }
 
+  const primaryAnswer = detail.answers[0];
   const seoTitle = buildForumQuestionSeoTitle(meta.title, detail.body);
   const seoDescription = buildForumQuestionSeoDescription(detail.body, {
     answerCount: detail.answers.length,
-    doctorName: detail.answers[0]?.doctor.name,
+    doctorName: primaryAnswer?.doctor.name,
+    answerSnippet: primaryAnswer?.answerHtml ?? null,
   });
   const breadcrumbLeaf = truncateMeta(detail.body, 48);
   const lastModified =

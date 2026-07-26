@@ -4,6 +4,7 @@ import AnswerHtml from './AnswerHtml';
 import { formatShortAgo } from '../lib/formatShortAgo';
 import defaultDoctorAvatarUrl from '../assets/doctor-avatar-default.svg?url';
 import { resolveMediaUrl } from '../lib/resolveMediaUrl';
+import { forumAnswerAnchorId } from '../seo/forumQuestionSeo';
 
 export type DoctorAnswerCardDoctor = {
   name: string;
@@ -89,12 +90,14 @@ export default function DoctorAnswerCard({
   const isDiabetesAnswer = questionCategory?.trim().toLowerCase() === 'diabetes';
 
   return (
-    <article className={className}>
+    <article className={className} id={forumAnswerAnchorId(answerId)} itemScope itemType="https://schema.org/Answer">
       <div className="forum-reviewed-badge">
         <FiCheck aria-hidden /> Medically reviewed
       </div>
-      <div className="forum-doctor-label">Doctor’s answer</div>
-      <div className="forum-doctor-profile">
+      <h2 className="forum-doctor-label" itemProp="name">
+        Doctor’s answer{doctor.name ? ` — ${doctor.name}` : ''}
+      </h2>
+      <div className="forum-doctor-profile" itemProp="author" itemScope itemType="https://schema.org/Person">
         <div className="forum-doctor-photo-wrap">
           {showPhoto ? (
             <img
@@ -121,8 +124,12 @@ export default function DoctorAnswerCard({
           )}
         </div>
         <div>
-          <div className="forum-doctor-name">{doctor.name}</div>
-          <div className="forum-doctor-titles">{doctor.titles}</div>
+          <div className="forum-doctor-name" itemProp="name">
+            {doctor.name}
+          </div>
+          <div className="forum-doctor-titles" itemProp="jobTitle">
+            {doctor.titles}
+          </div>
           <div className="forum-doctor-verify">
             <span>
               <FiCheck className="forum-check" aria-hidden /> Verified expert
@@ -131,10 +138,14 @@ export default function DoctorAnswerCard({
               <span className="forum-doctor-exp">Clinical experience: {doctor.experienceYears} years</span>
             ) : null}
           </div>
-          <div style={{ marginTop: 6, fontSize: 12, color: '#94a3b8' }}>Answered {formatShortAgo(createdAt)}</div>
+          <div style={{ marginTop: 6, fontSize: 12, color: '#94a3b8' }}>
+            <time dateTime={createdAt} itemProp="dateCreated">
+              Answered {formatShortAgo(createdAt)}
+            </time>
+          </div>
         </div>
       </div>
-      <div className={`forum-doctor-body ${answerHtmlClassName}`.trim()}>
+      <div className={`forum-doctor-body ${answerHtmlClassName}`.trim()} itemProp="text">
         <AnswerHtml html={answerHtml} />
       </div>
       {isDiabetesAnswer ? (

@@ -777,6 +777,7 @@
   border-radius: 12px;
   padding: 28px 24px 22px;
   box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+  scroll-margin-top: 96px;
 }
 
 .forum-reviewed-badge {
@@ -816,6 +817,10 @@
   color: var(--forum-muted);
   margin-bottom: 12px;
   margin-top: 8px;
+}
+
+.forum-doctor-card {
+  scroll-margin-top: 96px;
 }
 
 .forum-doctor-profile {

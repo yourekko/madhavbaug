@@ -20,7 +20,10 @@ const robots = `# Madhavbaug Health Forum
 User-agent: *
 Allow: ${basePath}
 
+# Static snapshot (updated on each Hostinger deploy)
 Sitemap: ${siteUrl}${basePath}sitemap.xml
+# Live API sitemap (includes newly answered questions without a frontend rebuild)
+Sitemap: ${apiBase}/public/forum/sitemap.xml
 `;
 
 async function fetchSitemapXml() {
