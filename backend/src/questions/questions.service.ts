@@ -20,6 +20,7 @@ import { QuestionFollowup } from '../entities/question-followup.entity';
 import { Question } from '../entities/question.entity';
 import { User } from '../entities/user.entity';
 import { UsersService } from '../users/users.service';
+import { SeoService } from '../seo/seo.service';
 import { normalizePublicUploadPhotoUrl } from '../common/utils/normalize-upload-url';
 import { buildForumSlug, extractQuestionTitle, forumSlugIdFragment } from '../common/utils/slugify';
 import { CreateAnswerDto } from './dto/create-answer.dto';
@@ -52,6 +53,7 @@ export class QuestionsService implements OnModuleInit {
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
     private readonly usersService: UsersService,
+    private readonly seoService: SeoService,
   ) {}
 
   private isMysqlDuplicateKeyError(err: unknown): boolean {
@@ -1380,6 +1382,8 @@ export class QuestionsService implements OnModuleInit {
       viewCount: rq.viewCount ?? 0,
     }));
 
+    const seoOverride = await this.seoService.getQuestionSeoOverride(question.id);
+
     return {
       slug: question.forumSlug as string,
       title: question.title,
@@ -1388,6 +1392,14 @@ export class QuestionsService implements OnModuleInit {
       createdAt: question.createdAt,
       viewCount,
       patientAnonId: `MB-${question.id.replace(/-/g, '').slice(0, 4).toUpperCase()}`,
+      seo: seoOverride
+        ? {
+            title: seoOverride.title,
+            metaDescription: seoOverride.metaDescription,
+            robots: seoOverride.robots ?? 'index,follow',
+            isCustom: true,
+          }
+        : null,
       answers: answers.map((a) => {
         const doc = doctorById.get(a.doctorUserId);
         const profile = doc?.doctorProfile;

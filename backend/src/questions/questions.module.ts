@@ -8,6 +8,7 @@ import { QuestionAssignment } from '../entities/question-assignment.entity';
 import { QuestionFollowup } from '../entities/question-followup.entity';
 import { Question } from '../entities/question.entity';
 import { User } from '../entities/user.entity';
+import { SeoModule } from '../seo/seo.module';
 import { UsersModule } from '../users/users.module';
 import { AdminController } from './admin.controller';
 import { DoctorController } from './doctor.controller';
@@ -16,7 +17,11 @@ import { QuestionsController } from './questions.controller';
 import { QuestionsService } from './questions.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Question, QuestionFollowup, Answer, QuestionAssignment, User, AuditLog]), UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Question, QuestionFollowup, Answer, QuestionAssignment, User, AuditLog]),
+    UsersModule,
+    SeoModule,
+  ],
   controllers: [QuestionsController, DoctorController, AdminController, ForumPublicController],
   providers: [QuestionsService, PatientPhoneGuard, DoctorProfileCompleteGuard],
   exports: [QuestionsService],

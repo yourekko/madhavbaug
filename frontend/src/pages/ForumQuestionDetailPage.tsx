@@ -214,12 +214,15 @@ export function ForumQuestionDetailPage() {
   }
 
   const primaryAnswer = detail.answers[0];
-  const seoTitle = buildForumQuestionSeoTitle(meta.title, detail.body);
-  const seoDescription = buildForumQuestionSeoDescription(detail.body, {
+  const autoTitle = buildForumQuestionSeoTitle(meta.title, detail.body);
+  const autoDescription = buildForumQuestionSeoDescription(detail.body, {
     answerCount: detail.answers.length,
     doctorName: primaryAnswer?.doctor.name,
     answerSnippet: primaryAnswer?.answerHtml ?? null,
   });
+  const seoTitle = detail.seo?.title?.trim() || autoTitle;
+  const seoDescription = detail.seo?.metaDescription?.trim() || autoDescription;
+  const noindex = (detail.seo?.robots ?? '').toLowerCase().includes('noindex');
   const breadcrumbLeaf = truncateMeta(detail.body, 48);
   const lastModified =
     detail.answers[detail.answers.length - 1]?.createdAt ?? detail.createdAt;
@@ -239,6 +242,7 @@ export function ForumQuestionDetailPage() {
         keywords={forumCategoryKeywords(slug)}
         publishedTime={detail.createdAt}
         modifiedTime={lastModified}
+        noindex={noindex}
         jsonLd={forumQuestionPageJsonLd(slug, detail)}
       />
       <div className="forum-shell forum-detail-shell">

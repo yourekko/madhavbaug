@@ -94,6 +94,13 @@ export type ForumDetailResponse = {
   createdAt: string;
   viewCount: number;
   patientAnonId: string;
+  /** Admin-managed SEO overrides for this Q&A page (optional). */
+  seo?: {
+    title: string;
+    metaDescription: string | null;
+    robots: string;
+    isCustom: boolean;
+  } | null;
   answers: ForumAnswerBlock[];
   related: { slug: string; title: string; answerCount: number; viewCount: number }[];
 };
