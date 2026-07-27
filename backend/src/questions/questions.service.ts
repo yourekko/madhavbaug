@@ -207,6 +207,20 @@ export class QuestionsService implements OnModuleInit {
 
   async onModuleInit() {
     await this.backfillForumSlugs();
+    await this.healAnsweredQuestionStatus();
+  }
+
+  /** Ensure questions with published doctor answers are marked answered (required for public SEO/sitemap). */
+  private async healAnsweredQuestionStatus() {
+    await this.questionRepo
+      .createQueryBuilder()
+      .update(Question)
+      .set({ status: QuestionStatus.ANSWERED })
+      .where('status != :answered', { answered: QuestionStatus.ANSWERED })
+      .andWhere(
+        `EXISTS (SELECT 1 FROM answers a WHERE a.question_id = questions.id AND a.is_published = 1)`,
+      )
+      .execute();
   }
 
   private async backfillForumSlugs() {
@@ -1065,8 +1079,7 @@ export class QuestionsService implements OnModuleInit {
   async getPublicHomeFeed() {
     const answeredRows = await this.questionRepo
       .createQueryBuilder('q')
-      .where('q.status = :st', { st: QuestionStatus.ANSWERED })
-      .andWhere('q.forum_slug IS NOT NULL')
+      .where('q.forum_slug IS NOT NULL')
       .andWhere(`EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`)
       .orderBy('q.created_at', 'DESC')
       .take(24)
@@ -1206,7 +1219,6 @@ export class QuestionsService implements OnModuleInit {
       const answered = await this.questionRepo
         .createQueryBuilder('q')
         .where('q.category IN (:...cats)', { cats })
-        .andWhere('q.status = :st', { st: QuestionStatus.ANSWERED })
         .andWhere(
           `EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`,
         )
@@ -1255,7 +1267,7 @@ export class QuestionsService implements OnModuleInit {
         `NOT EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`,
       );
     } else {
-      qb.andWhere('q.status = :ans', { ans: QuestionStatus.ANSWERED });
+      // Public SEO/list: any question with a published doctor answer (status heal is best-effort)
       qb.andWhere(
         `EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`,
       );
@@ -1344,7 +1356,6 @@ export class QuestionsService implements OnModuleInit {
       .where('q.category IN (:...cats)', { cats })
       .andWhere('q.id != :id', { id: question.id })
       .andWhere('q.forum_slug IS NOT NULL')
-      .andWhere('q.status = :st', { st: QuestionStatus.ANSWERED })
       .andWhere(
         `EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`,
       )
@@ -1454,7 +1465,6 @@ export class QuestionsService implements OnModuleInit {
     const published = await this.questionRepo
       .createQueryBuilder('q')
       .where('q.forum_slug IS NOT NULL')
-      .andWhere('q.status = :st', { st: QuestionStatus.ANSWERED })
       .andWhere(
         `EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`,
       )
