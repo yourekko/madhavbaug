@@ -1221,6 +1221,7 @@ export class QuestionsService implements OnModuleInit {
       const answered = await this.questionRepo
         .createQueryBuilder('q')
         .where('q.category IN (:...cats)', { cats })
+        .andWhere('q.forum_slug IS NOT NULL')
         .andWhere(
           `EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`,
         )
@@ -1228,6 +1229,7 @@ export class QuestionsService implements OnModuleInit {
       const open = await this.questionRepo
         .createQueryBuilder('q')
         .where('q.category IN (:...cats)', { cats })
+        .andWhere('q.forum_slug IS NOT NULL')
         .andWhere('q.status IN (:...ost)', {
           ost: [QuestionStatus.OPEN, QuestionStatus.ASSIGNED],
         })
@@ -1397,6 +1399,22 @@ export class QuestionsService implements OnModuleInit {
             title: seoOverride.title,
             metaDescription: seoOverride.metaDescription,
             robots: seoOverride.robots ?? 'index,follow',
+            focusKeyword: seoOverride.focusKeyword ?? null,
+            keywords: seoOverride.keywords ?? null,
+            ogTitle: seoOverride.ogTitle ?? null,
+            ogDescription: seoOverride.ogDescription ?? null,
+            internalLinks: (() => {
+              try {
+                const raw = seoOverride.internalLinks;
+                if (!raw?.trim()) return [] as string[];
+                const parsed = JSON.parse(raw) as unknown;
+                return Array.isArray(parsed)
+                  ? parsed.filter((x): x is string => typeof x === 'string' && x.startsWith('/forum/'))
+                  : [];
+              } catch {
+                return [] as string[];
+              }
+            })(),
             isCustom: true,
           }
         : null,

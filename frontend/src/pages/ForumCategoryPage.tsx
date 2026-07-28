@@ -11,7 +11,6 @@ import {
   FiMessageCircle,
   FiSearch,
   FiShare2,
-  FiUser,
 } from 'react-icons/fi';
 import { Seo } from '../components/Seo';
 import {
@@ -23,6 +22,7 @@ import {
   type ForumCategorySlug,
 } from '../data/forumData';
 import { fetchForumQuestionList, fetchForumStats, type ForumListItem, type ForumStats } from '../lib/forumPublicApi';
+import { fetchPublicPageSeo, type PublicPageSeo } from '../lib/publicSeoApi';
 import { forumQuestionPath } from '../lib/questionSlug';
 import { forumCategoryKeywords } from '../seo/forumQuestionSeo';
 import { forumCategoryJsonLd } from '../seo/jsonLd';
@@ -50,6 +50,7 @@ export function ForumCategoryPage() {
   const [loading, setLoading] = useState(true);
   const [slowLoad, setSlowLoad] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pageSeo, setPageSeo] = useState<PublicPageSeo | null>(null);
 
   const apiFilter = filter === 'open' ? 'open' : 'answered';
   const apiSort = filter === 'viewed' ? 'views' : 'latest';
@@ -60,7 +61,7 @@ export function ForumCategoryPage() {
     setError(null);
     const slowTimer = window.setTimeout(() => setSlowLoad(true), 4000);
     try {
-      const [statsRes, listRes] = await Promise.all([
+      const [statsRes, listRes, seoRes] = await Promise.all([
         fetchForumStats().catch(() => ({} as ForumStats)),
         fetchForumQuestionList(slug, {
           page,
@@ -69,10 +70,12 @@ export function ForumCategoryPage() {
           filter: apiFilter,
           sort: apiFilter === 'open' ? 'latest' : apiSort,
         }),
+        fetchPublicPageSeo(`category-${slug}`),
       ]);
       setStats(statsRes);
       setItems(listRes.items);
       setTotal(listRes.total);
+      setPageSeo(seoRes);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
       setItems([]);
@@ -88,7 +91,7 @@ export function ForumCategoryPage() {
     load().catch(() => {});
   }, [load]);
 
-  const answeredCount = stats?.[slug]?.answered ?? meta.answeredCount;
+  const answeredCount = stats?.[slug]?.answered ?? 0;
 
   const totalPages = Math.max(1, Math.ceil(total / perPage));
 
@@ -97,11 +100,14 @@ export function ForumCategoryPage() {
   return (
     <div className="forum-page">
       <Seo
-        title={meta.pageTitle}
-        description={meta.description}
+        title={pageSeo?.title || meta.pageTitle}
+        description={pageSeo?.metaDescription || meta.description}
         canonicalPath={seoPublicPath(`/forum/${slug}`)}
-        keywords={forumCategoryKeywords(slug)}
-        jsonLd={forumCategoryJsonLd(slug, meta.pageTitle, meta.description)}
+        keywords={pageSeo?.keywords || forumCategoryKeywords(slug)}
+        ogTitle={pageSeo?.ogTitle || undefined}
+        ogDescription={pageSeo?.ogDescription || undefined}
+        robots={pageSeo?.robots}
+        jsonLd={forumCategoryJsonLd(slug, pageSeo?.title || meta.pageTitle, pageSeo?.metaDescription || meta.description)}
       />
       <section className="forum-hero">
         <div className="forum-hero-inner">
@@ -363,28 +369,6 @@ export function ForumCategoryPage() {
                       </div>
                       <FiChevronRight aria-hidden />
                     </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="forum-side-card">
-              <h4 className="forum-side-h">
-                <FiUser aria-hidden /> Expert panel
-              </h4>
-              <ul className="forum-experts">
-                {[
-                  { name: 'Dr. Anjali Deshmukh', role: 'Endocrinologist', years: '18+ years' },
-                  { name: 'Dr. Rohan Mehta', role: 'Diabetologist', years: '14+ years' },
-                  { name: 'Dr. Priya Kulkarni', role: 'Lifestyle medicine', years: '11+ years' },
-                ].map((ex) => (
-                  <li key={ex.name} className="forum-expert-row">
-                    <div className="forum-expert-avatar" aria-hidden />
-                    <div>
-                      <div className="forum-expert-name">{ex.name}</div>
-                      <div className="forum-expert-role">{ex.role}</div>
-                      <div className="forum-expert-years">{ex.years}</div>
-                    </div>
                   </li>
                 ))}
               </ul>

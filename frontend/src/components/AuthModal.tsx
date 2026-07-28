@@ -200,9 +200,15 @@ export function AuthModal({
                 size="large"
                 width={368}
                 text="continue_with"
+                ux_mode="popup"
+                useOneTap={false}
+                auto_select={false}
                 onSuccess={async (cred) => {
                   const idToken = cred.credential;
-                  if (!idToken) return;
+                  if (!idToken) {
+                    toast.error('Google did not return a credential. Please try again.');
+                    return;
+                  }
                   setLoading(true);
                   setError(null);
                   try {
@@ -218,7 +224,7 @@ export function AuthModal({
                   }
                 }}
                 onError={() => {
-                  toast.error('Google sign-in was interrupted.');
+                  toast.error('Google sign-in was interrupted. Please try Continue with Google again.');
                 }}
               />
             </div>

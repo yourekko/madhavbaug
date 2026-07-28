@@ -9,70 +9,65 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpsertSeoPageDto = void 0;
+exports.UpsertQuestionSeoDto = void 0;
 const class_validator_1 = require("class-validator");
-class UpsertSeoPageDto {
-    pageType;
+class UpsertQuestionSeoDto {
     title;
     metaDescription;
-    canonicalUrl;
     robots;
     focusKeyword;
     keywords;
     ogTitle;
     ogDescription;
+    internalLinks;
 }
-exports.UpsertSeoPageDto = UpsertSeoPageDto;
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(60),
-    __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "pageType", void 0);
+exports.UpsertQuestionSeoDto = UpsertQuestionSeoDto;
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(180),
     __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "title", void 0);
+], UpsertQuestionSeoDto.prototype, "title", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(320),
     __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "metaDescription", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(500),
-    __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "canonicalUrl", void 0);
+], UpsertQuestionSeoDto.prototype, "metaDescription", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(80),
     __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "robots", void 0);
+], UpsertQuestionSeoDto.prototype, "robots", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(120),
     __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "focusKeyword", void 0);
+], UpsertQuestionSeoDto.prototype, "focusKeyword", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(500),
     __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "keywords", void 0);
+], UpsertQuestionSeoDto.prototype, "keywords", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(180),
     __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "ogTitle", void 0);
+], UpsertQuestionSeoDto.prototype, "ogTitle", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(320),
     __metadata("design:type", String)
-], UpsertSeoPageDto.prototype, "ogDescription", void 0);
-//# sourceMappingURL=upsert-seo-page.dto.js.map
+], UpsertQuestionSeoDto.prototype, "ogDescription", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpsertQuestionSeoDto.prototype, "internalLinks", void 0);
+//# sourceMappingURL=upsert-question-seo.dto.js.map

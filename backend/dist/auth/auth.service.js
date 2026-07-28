@@ -124,6 +124,8 @@ let AuthService = class AuthService {
         const user = await this.usersService.findByEmailOrPhone(input.email ?? null, input.phone ?? null);
         if (!user)
             throw new common_1.UnauthorizedException('Invalid credentials.');
+        if (!user.isActive)
+            throw new common_1.UnauthorizedException('This account has been deactivated.');
         const ok = await bcrypt.compare(input.password, user.passwordHash);
         if (!ok)
             throw new common_1.UnauthorizedException('Invalid credentials.');
@@ -156,6 +158,8 @@ let AuthService = class AuthService {
         const targetRole = role === 'doctor' ? role_enum_1.Role.DOCTOR : role_enum_1.Role.PATIENT;
         let user = await this.usersService.findByGoogleSub(sub);
         if (user) {
+            if (!user.isActive)
+                throw new common_1.UnauthorizedException('This account has been deactivated.');
             if (user.role !== targetRole) {
                 throw new common_1.BadRequestException('This Google account is already linked to a different account type.');
             }
@@ -164,6 +168,8 @@ let AuthService = class AuthService {
         }
         const existingByEmail = await this.usersService.findByEmailOrPhone(email, null);
         if (existingByEmail) {
+            if (!existingByEmail.isActive)
+                throw new common_1.UnauthorizedException('This account has been deactivated.');
             if (existingByEmail.role !== targetRole) {
                 throw new common_1.BadRequestException('An account with this email already exists with a different role.');
             }
@@ -273,6 +279,8 @@ let AuthService = class AuthService {
     }
     async getMe(userId) {
         const user = await this.usersService.getById(userId);
+        if (!user.isActive)
+            throw new common_1.ForbiddenException('This account has been deactivated.');
         const profile = user.role === role_enum_1.Role.DOCTOR ? await this.usersService.getDoctorProfileByUserId(user.id) : null;
         const needsPatientPhone = user.role === role_enum_1.Role.PATIENT && !user.phone;
         const needsDoctorProfile = user.role === role_enum_1.Role.DOCTOR && ((!!profile && profile.profileCompleted === false) || !user.phone);

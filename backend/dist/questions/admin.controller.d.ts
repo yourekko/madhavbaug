@@ -1,9 +1,11 @@
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import { QuestionStatus } from '../common/enums/question-status.enum';
+import { Role } from '../common/enums/role.enum';
 import { UsersService } from '../users/users.service';
 import { AssignDoctorDto } from './dto/assign-doctor.dto';
 import { UpdateQuestionStatusDto } from './dto/update-question-status.dto';
 import { QuestionsService } from './questions.service';
+import { SetUserActiveDto } from '../users/dto/set-user-active.dto';
 export declare class AdminController {
     private readonly questionsService;
     private readonly usersService;
@@ -81,6 +83,7 @@ export declare class AdminController {
         doctorName: string;
         email: string | null;
         phone: string | null;
+        isActive: boolean;
         whatsappNumber: string | null;
         branchName: string | null;
         profileLink: string | null;
@@ -151,4 +154,10 @@ export declare class AdminController {
             count: number;
         }[];
     }[]>;
+    setUserActive(id: string, dto: SetUserActiveDto, user: JwtPayload): Promise<{
+        ok: boolean;
+        userId: string;
+        role: Role.PATIENT | Role.DOCTOR;
+        isActive: boolean;
+    }>;
 }

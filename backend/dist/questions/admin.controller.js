@@ -24,6 +24,7 @@ const users_service_1 = require("../users/users.service");
 const assign_doctor_dto_1 = require("./dto/assign-doctor.dto");
 const update_question_status_dto_1 = require("./dto/update-question-status.dto");
 const questions_service_1 = require("./questions.service");
+const set_user_active_dto_1 = require("../users/dto/set-user-active.dto");
 let AdminController = class AdminController {
     questionsService;
     usersService;
@@ -57,6 +58,9 @@ let AdminController = class AdminController {
     }
     patientReports() {
         return this.questionsService.adminPatientAnalytics();
+    }
+    setUserActive(id, dto, user) {
+        return this.usersService.adminSetUserActive(user.sub, id, dto.isActive);
     }
 };
 exports.AdminController = AdminController;
@@ -127,6 +131,15 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "patientReports", null);
+__decorate([
+    (0, common_1.Patch)('users/:id/active'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, set_user_active_dto_1.SetUserActiveDto, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "setUserActive", null);
 exports.AdminController = AdminController = __decorate([
     (0, common_1.Controller)('admin'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),

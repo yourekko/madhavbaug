@@ -21,6 +21,9 @@ let SeoPage = class SeoPage {
     robots;
     ogTitle;
     ogDescription;
+    keywords;
+    focusKeyword;
+    internalLinks;
     updatedBy;
     updatedAt;
 };
@@ -61,6 +64,18 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'og_description', nullable: true, type: 'text' }),
     __metadata("design:type", Object)
 ], SeoPage.prototype, "ogDescription", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], SeoPage.prototype, "keywords", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'focus_keyword', type: 'varchar', nullable: true, length: 120 }),
+    __metadata("design:type", Object)
+], SeoPage.prototype, "focusKeyword", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'internal_links', type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], SeoPage.prototype, "internalLinks", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'updated_by', type: 'varchar', nullable: true, length: 120 }),
     __metadata("design:type", Object)

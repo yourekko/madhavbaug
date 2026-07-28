@@ -222,7 +222,9 @@ export function ForumQuestionDetailPage() {
   });
   const seoTitle = detail.seo?.title?.trim() || autoTitle;
   const seoDescription = detail.seo?.metaDescription?.trim() || autoDescription;
+  const seoKeywords = detail.seo?.keywords?.trim() || forumCategoryKeywords(slug);
   const noindex = (detail.seo?.robots ?? '').toLowerCase().includes('noindex');
+  const adminInternalLinks = (detail.seo?.internalLinks ?? []).filter((p) => p.startsWith('/forum/'));
   const breadcrumbLeaf = truncateMeta(detail.body, 48);
   const lastModified =
     detail.answers[detail.answers.length - 1]?.createdAt ?? detail.createdAt;
@@ -239,7 +241,10 @@ export function ForumQuestionDetailPage() {
         description={seoDescription}
         canonicalPath={canonicalPath}
         ogType="article"
-        keywords={forumCategoryKeywords(slug)}
+        keywords={seoKeywords}
+        ogTitle={detail.seo?.ogTitle || undefined}
+        ogDescription={detail.seo?.ogDescription || undefined}
+        robots={detail.seo?.robots}
         publishedTime={detail.createdAt}
         modifiedTime={lastModified}
         noindex={noindex}
@@ -368,10 +373,20 @@ export function ForumQuestionDetailPage() {
         <aside className="forum-detail-aside">
           <div className="forum-related-card">
             <h2 className="forum-related-h">Related questions patients asked</h2>
-            {detail.related.length === 0 ? (
+            {detail.related.length === 0 && adminInternalLinks.length === 0 ? (
               <p style={{ fontSize: 14, color: '#64748b' }}>More discussions will appear as doctors answer new questions.</p>
             ) : (
               <ul className="forum-related-list">
+                {adminInternalLinks.map((path) => (
+                  <li key={`seo-${path}`}>
+                    <Link to={path} className="forum-related-link">
+                      {path.replace(/^\/forum\//, '').replace(/\//g, ' · ')}
+                    </Link>
+                    <div className="forum-related-meta">
+                      <span>Internal link</span>
+                    </div>
+                  </li>
+                ))}
                 {detail.related.map((r) => (
                   <li key={r.slug}>
                     <Link to={forumQuestionPath(slug, r.slug)} className="forum-related-link">

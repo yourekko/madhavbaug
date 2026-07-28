@@ -8,6 +8,9 @@ export declare class SeoPage {
     robots: string | null;
     ogTitle: string | null;
     ogDescription: string | null;
+    keywords: string | null;
+    focusKeyword: string | null;
+    internalLinks: string | null;
     updatedBy: string | null;
     updatedAt: Date;
 }

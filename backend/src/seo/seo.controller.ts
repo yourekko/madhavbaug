@@ -15,6 +15,12 @@ import { SeoService } from './seo.service';
 export class SeoController {
   constructor(private readonly seoService: SeoService) {}
 
+  /** Homepage, Ask, and category hub pages. */
+  @Get('hubs')
+  listHubs() {
+    return this.seoService.listHubPages();
+  }
+
   /** Answered Q&A pages — edit SEO for each published doctor answer thread. */
   @Get('questions')
   listQuestionSeo() {
@@ -32,7 +38,7 @@ export class SeoController {
 
   @Get('pages/:slug')
   getBySlug(@Param('slug') slug: string) {
-    return this.seoService.getBySlug(slug);
+    return this.seoService.getPublicPageSeo(slug);
   }
 
   @Put('pages/:slug')

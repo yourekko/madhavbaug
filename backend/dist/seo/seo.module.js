@@ -9,7 +9,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SeoModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+const answer_entity_1 = require("../entities/answer.entity");
+const question_entity_1 = require("../entities/question.entity");
 const seo_page_entity_1 = require("../entities/seo-page.entity");
+const public_seo_controller_1 = require("./public-seo.controller");
 const seo_controller_1 = require("./seo.controller");
 const seo_service_1 = require("./seo.service");
 let SeoModule = class SeoModule {
@@ -17,9 +20,10 @@ let SeoModule = class SeoModule {
 exports.SeoModule = SeoModule;
 exports.SeoModule = SeoModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([seo_page_entity_1.SeoPage])],
-        controllers: [seo_controller_1.SeoController],
+        imports: [typeorm_1.TypeOrmModule.forFeature([seo_page_entity_1.SeoPage, question_entity_1.Question, answer_entity_1.Answer])],
+        controllers: [seo_controller_1.SeoController, public_seo_controller_1.PublicSeoController],
         providers: [seo_service_1.SeoService],
+        exports: [seo_service_1.SeoService],
     })
 ], SeoModule);
 //# sourceMappingURL=seo.module.js.map

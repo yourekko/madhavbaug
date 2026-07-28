@@ -17,6 +17,7 @@ const question_assignment_entity_1 = require("../entities/question-assignment.en
 const question_followup_entity_1 = require("../entities/question-followup.entity");
 const question_entity_1 = require("../entities/question.entity");
 const user_entity_1 = require("../entities/user.entity");
+const seo_module_1 = require("../seo/seo.module");
 const users_module_1 = require("../users/users.module");
 const admin_controller_1 = require("./admin.controller");
 const doctor_controller_1 = require("./doctor.controller");
@@ -28,7 +29,11 @@ let QuestionsModule = class QuestionsModule {
 exports.QuestionsModule = QuestionsModule;
 exports.QuestionsModule = QuestionsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([question_entity_1.Question, question_followup_entity_1.QuestionFollowup, answer_entity_1.Answer, question_assignment_entity_1.QuestionAssignment, user_entity_1.User, audit_log_entity_1.AuditLog]), users_module_1.UsersModule],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([question_entity_1.Question, question_followup_entity_1.QuestionFollowup, answer_entity_1.Answer, question_assignment_entity_1.QuestionAssignment, user_entity_1.User, audit_log_entity_1.AuditLog]),
+            users_module_1.UsersModule,
+            seo_module_1.SeoModule,
+        ],
         controllers: [questions_controller_1.QuestionsController, doctor_controller_1.DoctorController, admin_controller_1.AdminController, forum_public_controller_1.ForumPublicController],
         providers: [questions_service_1.QuestionsService, patient_phone_guard_1.PatientPhoneGuard, doctor_profile_complete_guard_1.DoctorProfileCompleteGuard],
         exports: [questions_service_1.QuestionsService],

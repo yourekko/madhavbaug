@@ -1,9 +1,124 @@
-import { Repository } from 'typeorm';
+import { OnModuleInit } from '@nestjs/common';
+import { DataSource, Repository } from 'typeorm';
+import { Answer } from '../entities/answer.entity';
+import { Question } from '../entities/question.entity';
 import { SeoPage } from '../entities/seo-page.entity';
+import { UpsertQuestionSeoDto } from './dto/upsert-question-seo.dto';
 import { UpsertSeoPageDto } from './dto/upsert-seo-page.dto';
-export declare class SeoService {
+export declare class SeoService implements OnModuleInit {
     private readonly seoRepo;
-    constructor(seoRepo: Repository<SeoPage>);
+    private readonly questionRepo;
+    private readonly answerRepo;
+    private readonly dataSource;
+    private readonly logger;
+    constructor(seoRepo: Repository<SeoPage>, questionRepo: Repository<Question>, answerRepo: Repository<Answer>, dataSource: DataSource);
+    onModuleInit(): Promise<void>;
     getBySlug(slug: string): Promise<SeoPage | null>;
+    getPublicPageSeo(slug: string): Promise<{
+        slug: string;
+        pageType: string;
+        label: string;
+        publicPath: string;
+        publicUrl: string;
+        isCustom: boolean;
+        title: string;
+        metaDescription: string;
+        robots: string;
+        focusKeyword: string;
+        keywords: string;
+        ogTitle: string | null;
+        ogDescription: string | null;
+        canonicalUrl: string;
+        updatedAt: Date | null;
+        defaults: {
+            title: string;
+            metaDescription: string;
+            focusKeyword: string;
+            keywords: string;
+        };
+    } | {
+        slug: string;
+        pageType: string;
+        label: string;
+        publicPath: null;
+        publicUrl: string | null;
+        isCustom: boolean;
+        title: string;
+        metaDescription: string | null;
+        robots: string;
+        focusKeyword: string | null;
+        keywords: string | null;
+        ogTitle: string | null;
+        ogDescription: string | null;
+        canonicalUrl: string | null;
+        updatedAt: Date;
+    }>;
+    listHubPages(): Promise<{
+        slug: string;
+        pageType: string;
+        label: string;
+        publicPath: string;
+        publicUrl: string;
+        isCustom: boolean;
+        title: string;
+        metaDescription: string;
+        robots: string;
+        focusKeyword: string;
+        keywords: string;
+        ogTitle: string | null;
+        ogDescription: string | null;
+        canonicalUrl: string;
+        updatedAt: Date | null;
+        defaults: {
+            title: string;
+            metaDescription: string;
+            focusKeyword: string;
+            keywords: string;
+        };
+    }[]>;
     upsertBySlug(slug: string, dto: UpsertSeoPageDto, adminUserId: string): Promise<SeoPage>;
+    listAnsweredQuestionSeo(): Promise<{
+        questionId: string;
+        forumSlug: string | null;
+        category: string;
+        categorySlug: string | null;
+        questionPreview: string;
+        answerCount: number;
+        doctorName: string | null;
+        publicPath: string | null;
+        publicUrl: string | null;
+        inSitemap: boolean;
+        autoTitle: string;
+        autoDescription: string;
+        seo: {
+            title: string;
+            metaDescription: string;
+            robots: string;
+            focusKeyword: string | null;
+            keywords: string | null;
+            ogTitle: string | null;
+            ogDescription: string | null;
+            canonicalUrl: string | null;
+            internalLinks: string[];
+            updatedAt: Date | null;
+            isCustom: boolean;
+        };
+    }[]>;
+    upsertQuestionSeo(questionId: string, dto: UpsertQuestionSeoDto, adminUserId: string): Promise<{
+        questionId: string;
+        seo: {
+            title: string;
+            metaDescription: string | null;
+            robots: string;
+            focusKeyword: string | null;
+            keywords: string | null;
+            ogTitle: string | null;
+            ogDescription: string | null;
+            internalLinks: string[];
+            canonicalUrl: string | null;
+            isCustom: boolean;
+            updatedAt: Date;
+        };
+    }>;
+    getQuestionSeoOverride(questionId: string): Promise<SeoPage | null>;
 }

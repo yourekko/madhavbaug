@@ -1,11 +1,10 @@
-export declare class UpsertSeoPageDto {
-    pageType?: string;
+export declare class UpsertQuestionSeoDto {
     title?: string;
     metaDescription?: string;
-    canonicalUrl?: string;
     robots?: string;
     focusKeyword?: string;
     keywords?: string;
     ogTitle?: string;
     ogDescription?: string;
+    internalLinks?: string[];
 }

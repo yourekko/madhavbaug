@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { FaPhone } from 'react-icons/fa6';
+import { takePostAuthPath } from '../components/ProfileCompletionRedirect';
 import { Seo } from '../components/Seo';
 import { useSession } from '../context/SessionContext';
 import { useToast } from '../context/ToastContext';
@@ -29,8 +30,8 @@ export default function CompletePatientPhonePage() {
         token,
       );
       replaceSession(payload);
-      toast.success('Phone number saved. Welcome!');
-      navigate('/forum', { replace: true });
+      toast.success('Phone number saved. You’re signed in.');
+      navigate(takePostAuthPath('/forum'), { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unable to save phone number.';
       setError(msg);

@@ -17,12 +17,11 @@ import {
 } from 'react-icons/fa6';
 import { MdBloodtype } from 'react-icons/md';
 import { Seo } from '../components/Seo';
+import { Reveal } from '../components/Reveal';
 import { useAuthModal } from '../context/AuthModalContext';
 import { useSession } from '../context/SessionContext';
-import { seoConfig } from '../seo/seoConfig';
-import { seoPublicPath } from '../seo/seoPaths';
-import { Reveal } from '../components/Reveal';
 import { fetchForumStats, fetchHomeFeed, type HomeFeedResponse } from '../lib/forumPublicApi';
+import { fetchPublicPageSeo, type PublicPageSeo } from '../lib/publicSeoApi';
 import { forumPathForCategoryLabel } from '../lib/forumCategorySlug';
 import { forumQuestionPath } from '../lib/questionSlug';
 import {
@@ -30,6 +29,8 @@ import {
   FORUM_NAV_ITEMS,
   type ForumCategorySlug,
 } from '../data/forumData';
+import { seoConfig } from '../seo/seoConfig';
+import { seoPublicPath } from '../seo/seoPaths';
 
 const TOPIC_CARD_META: Record<
   ForumCategorySlug,
@@ -62,12 +63,6 @@ const TOPIC_CARD_META: Record<
   },
 };
 
-const experts = [
-  ['Dr. Rajesh Sharma', 'MD Ayurveda, Diabetes Specialist', '15+ Years Experience', 'BAMS, MD (Ayurveda)', 'Senior Consultant', '342 Answers'],
-  ['Dr. Amit Patel', 'MD Ayurveda, Cardiac Care', '12+ Years Experience', 'BAMS, MD (Kayachikitsa)', 'Lead Physician', '278 Answers'],
-  ['Dr. Priya Mehta', 'MD Ayurveda, Metabolic Health', '10+ Years Experience', 'BAMS, MD (Panchakarma)', 'Specialist Consultant', '195 Answers'],
-] as const;
-
 type TrendTab = 'latest' | 'mostViewed' | 'doctorAnswered';
 
 type TrendItem = {
@@ -85,116 +80,6 @@ type TrendItem = {
 };
 
 type RecentItem = HomeFeedResponse['recentlyAnswered'][number];
-
-const FALLBACK_TRENDING: TrendItem[] = [
-  {
-    id: 'diabetes',
-    category: 'Diabetes',
-    status: 'answered',
-    title: 'Can Ayurveda cure Type 2 Diabetes completely?',
-    body: 'I am 45 years old with Type 2 Diabetes for the past 3 years. Can I switch to Ayurvedic treatment and achieve complete cure?',
-    excerpt:
-      'I am 45 years old with Type 2 Diabetes for the past 3 years. Can I switch to Ayurvedic treatment and achieve complete cure?',
-    views: 2847,
-    answers: 3,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    questionHref: '/forum/ask',
-  },
-  {
-    id: 'bp',
-    category: 'Blood Pressure',
-    status: 'answered',
-    title: 'What lifestyle changes help reduce high blood pressure naturally?',
-    body: 'My BP readings are 150/95. Doctor suggested medication but I want to try natural methods first.',
-    excerpt:
-      'My BP readings are 150/95. Doctor suggested medication but I want to try natural methods first.',
-    views: 1923,
-    answers: 2,
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    questionHref: '/forum/ask',
-  },
-  {
-    id: 'weight',
-    category: 'Weight Management',
-    status: 'answered',
-    title: 'Best Ayurvedic herbs for weight loss and metabolism boost?',
-    body: 'I am overweight with slow metabolism. Which Ayurvedic herbs are scientifically proven to help with weight management and are safe for long-term use?',
-    excerpt:
-      'I am overweight with slow metabolism. Which Ayurvedic herbs are scientifically proven to help with weight management and are safe for long-term use?',
-    views: 1654,
-    answers: 4,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    questionHref: '/forum/ask',
-  },
-  {
-    id: 'heart',
-    category: 'Heart Health',
-    status: 'pending',
-    title: 'Can Ayurveda help with high cholesterol levels?',
-    body: 'My cholesterol is 240 mg/dL. Are there effective Ayurvedic treatments to lower cholesterol without side effects?',
-    excerpt:
-      'My cholesterol is 240 mg/dL. Are there effective Ayurvedic treatments to lower cholesterol without side effects?',
-    views: 892,
-    answers: 0,
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    questionHref: '/forum/ask',
-  },
-];
-
-const FALLBACK_RECENT: RecentItem[] = [
-  {
-    id: 'r1',
-    category: 'Diabetes',
-    categorySlug: 'diabetes-management',
-    questionSlug: null,
-    title: 'Is fasting beneficial for diabetes management?',
-    body: 'Is intermittent fasting safe and beneficial for managing Type 2 diabetes, and what precautions should I take?',
-    excerpt:
-      'Intermittent fasting can help improve insulin sensitivity when done correctly under medical supervision. Treatment effectiveness varies depending on age, lifestyle, and medical reports...',
-    views: 456,
-    answeredAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    doctor: { name: 'Dr. Rajesh Sharma', titles: 'MD Ayurveda' },
-  },
-  {
-    id: 'r2',
-    category: 'Weight Management',
-    categorySlug: 'obesity-metabolic-health',
-    questionSlug: null,
-    title: 'Which yoga asanas are best for weight loss?',
-    body: 'Which yoga asanas are most effective for weight loss when combined with Ayurvedic diet, and how often should they be practiced?',
-    excerpt:
-      'Surya Namaskar, Dhanurasana, and Bhujangasana are effective for metabolism boost. Personalized assessment is recommended before starting any treatment...',
-    views: 328,
-    answeredAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    doctor: { name: 'Dr. Priya Mehta', titles: 'MD Ayurveda' },
-  },
-  {
-    id: 'r3',
-    category: 'Blood Pressure',
-    categorySlug: 'hypertension-high-blood-pressure',
-    questionSlug: null,
-    title: 'Can stress cause high blood pressure?',
-    body: 'Can chronic work stress alone cause sustained high blood pressure, and what Ayurvedic approaches help manage stress-related hypertension?',
-    excerpt:
-      'Chronic stress significantly impacts cardiovascular health and can elevate blood pressure. Ayurvedic stress management through meditation and pranayama shows effectiveness...',
-    views: 612,
-    answeredAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    doctor: { name: 'Dr. Amit Patel', titles: 'MD Ayurveda' },
-  },
-  {
-    id: 'r4',
-    category: 'Heart Health',
-    categorySlug: 'heart-disease-heart-blockage',
-    questionSlug: null,
-    title: 'What is the ideal diet for heart patients?',
-    body: 'What is an ideal Ayurvedic diet pattern for someone recovering from mild heart blockage, including foods to emphasize and avoid?',
-    excerpt:
-      'Heart-healthy diet in Ayurveda focuses on light, easily digestible foods with minimal salt and saturated fats. Individual health conditions must be evaluated...',
-    views: 789,
-    answeredAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-    doctor: { name: 'Dr. Rajesh Sharma', titles: 'MD Ayurveda' },
-  },
-];
 
 function formatDaysAgo(n: number) {
   if (n <= 0) return 'today';
@@ -228,12 +113,13 @@ export default function HomePage() {
   const [homeFeed, setHomeFeed] = useState<HomeFeedResponse | null>(null);
   const [homeFeedFailed, setHomeFeedFailed] = useState(false);
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
+  const [pageSeo, setPageSeo] = useState<PublicPageSeo | null>(null);
 
   useEffect(() => {
     let alive = true;
-    Promise.allSettled([fetchHomeFeed(), fetchForumStats()]).then((results) => {
+    Promise.allSettled([fetchHomeFeed(), fetchForumStats(), fetchPublicPageSeo('home')]).then((results) => {
       if (!alive) return;
-      const [feedResult, statsResult] = results;
+      const [feedResult, statsResult, seoResult] = results;
       if (feedResult.status === 'fulfilled') {
         setHomeFeed(feedResult.value);
         setHomeFeedFailed(false);
@@ -243,10 +129,12 @@ export default function HomePage() {
       if (statsResult.status === 'fulfilled') {
         const merged: Record<string, number> = {};
         for (const [slug, counts] of Object.entries(statsResult.value)) {
-          merged[slug] = counts.answered + counts.open;
+          // Match category pages: show published (answered) question count only.
+          merged[slug] = counts.answered;
         }
         setTopicCounts(merged);
       }
+      if (seoResult.status === 'fulfilled') setPageSeo(seoResult.value);
     });
     return () => {
       alive = false;
@@ -260,7 +148,6 @@ export default function HomePage() {
   }, [trendTab]);
 
   const trendingItems = useMemo<TrendItem[]>(() => {
-    if (homeFeedFailed) return FALLBACK_TRENDING;
     if (!homeFeed) return [];
     return homeFeed.trending.map((item) => ({
       id: item.id,
@@ -290,10 +177,10 @@ export default function HomePage() {
     return list.filter((q) => q.status === 'answered');
   }, [trendTab, trendingItems]);
 
-  const quickAnswer = homeFeedFailed ? null : homeFeed?.quickAnswer ?? null;
+  const quickAnswer = homeFeed?.quickAnswer ?? null;
   const recentItems = useMemo<RecentItem[]>(
-    () => (homeFeedFailed ? FALLBACK_RECENT : homeFeed?.recentlyAnswered ?? []),
-    [homeFeed, homeFeedFailed],
+    () => homeFeed?.recentlyAnswered ?? [],
+    [homeFeed],
   );
 
   function openAuthFromHero() {
@@ -313,10 +200,13 @@ export default function HomePage() {
   return (
     <>
       <Seo
-        title="Ask Doctors Health Questions — Diabetes, Heart, BP & More"
-        description={seoConfig.defaultDescription}
+        title={pageSeo?.title || 'Ask Doctors Health Questions — Diabetes, Heart, BP & More'}
+        description={pageSeo?.metaDescription || seoConfig.defaultDescription}
         canonicalPath={seoPublicPath('/forum')}
-        keywords="health forum India, ask doctor online, diabetes questions, heart health advice, medical Q&A, Madhavbaug"
+        keywords={pageSeo?.keywords || 'health forum India, ask doctor online, diabetes questions, heart health advice, medical Q&A, Madhavbaug'}
+        ogTitle={pageSeo?.ogTitle || undefined}
+        ogDescription={pageSeo?.ogDescription || undefined}
+        robots={pageSeo?.robots}
       />
       <Reveal as="section" className="hero hero-reveal">
         <div className="content-wrap">
@@ -374,7 +264,7 @@ export default function HomePage() {
                   <div className="topic-meta">
                     <span>
                       {typeof count === 'number'
-                        ? `${count.toLocaleString()} Questions`
+                        ? `${count.toLocaleString()} answered`
                         : 'Browse questions'}
                     </span>
                     <FaArrowRight />
@@ -392,40 +282,38 @@ export default function HomePage() {
             <h3>
               <span className="qa-icon">?</span> Quick Medical Answer
             </h3>
-            <p className="qa-sub">Medically verified • Structured for voice assistants</p>
+            <p className="qa-sub">Medically verified • From published doctor replies</p>
             <div className="qa-body">
-              <p className="qa-title">Direct Answer</p>
-              <h4>
-                {quickAnswer?.answerSnippet ||
-                  (!homeFeed && !homeFeedFailed
-                    ? 'Loading reviewed answer...'
-                    : 'No reviewed answer is published yet. Ask a question to start the discussion.') ||
-                  'Ayurveda may help manage diabetes by improving metabolism and insulin sensitivity under medical supervision.'}
-              </h4>
-              <p className="qa-title">Explanation</p>
-              <p>
-                Treatment effectiveness varies depending on age, lifestyle, and medical reports. Ayurvedic approaches focus on balancing doshas.
-              </p>
-              <p className="qa-title warning">Suitability</p>
-              <p>
-                Personalized assessment is recommended before starting any treatment. Individual conditions and current
-                medications should be evaluated by qualified practitioners.
-              </p>
-              <div className="reviewer">
-                <span className="doc-avatar" />
-                <div>
-                  <strong>Reviewed by {quickAnswer?.reviewedBy?.name ?? 'Verified Doctor'}</strong>
+              {!quickAnswer ? (
+                <>
+                  <h4>
+                    {!homeFeed && !homeFeedFailed
+                      ? 'Loading reviewed answer…'
+                      : 'No reviewed answer is published yet.'}
+                  </h4>
                   <p>
-                    {quickAnswer?.reviewedBy?.titles ??
-                      'MD Ayurveda, 15+ years experience'}
+                    Once a doctor publishes an answer on the forum, a featured reply will appear here. You can also{' '}
+                    <Link to="/forum/ask">ask a question</Link> for a personal response.
                   </p>
-                </div>
-                <small>
-                  Reviewed on
-                  <br />
-                  {new Date(quickAnswer?.reviewedAt ?? Date.now()).toLocaleDateString()}
-                </small>
-              </div>
+                </>
+              ) : (
+                <>
+                  <p className="qa-title">Direct Answer</p>
+                  <h4>{quickAnswer.answerSnippet}</h4>
+                  <div className="reviewer">
+                    <span className="doc-avatar" />
+                    <div>
+                      <strong>Reviewed by {quickAnswer.reviewedBy?.name ?? 'Verified Doctor'}</strong>
+                      <p>{quickAnswer.reviewedBy?.titles ?? 'Medical reviewer'}</p>
+                    </div>
+                    <small>
+                      Reviewed on
+                      <br />
+                      {new Date(quickAnswer.reviewedAt).toLocaleDateString()}
+                    </small>
+                  </div>
+                </>
+              )}
             </div>
             <div className="qa-footer">
               <span>
@@ -532,19 +420,14 @@ export default function HomePage() {
       <Reveal as="section" className="section lightband reveal-stagger-experts">
         <div className="content-wrap">
           <h3 className="center-title title-reveal">Our Medical Experts</h3>
-          <div className="expert-grid">
-            {experts.map((e, idx) => (
-              <article className="expert-card" key={e[0]}>
-                <div className={`expert-avatar a${idx + 1}`} />
-                <h4>{e[0]}</h4>
-                <p className="sub">{e[1]}</p>
-                <span className="pill">{e[2]}</span>
-                <p>{e[3]}</p>
-                <p>{e[4]}</p>
-                <p>{e[5]}</p>
-                <div className="badge">Reviewed Answer Badge</div>
-              </article>
-            ))}
+          <p className="muted" style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto 1.5rem' }}>
+            Questions are answered by licensed Madhavbaug clinicians. Names and credentials appear on each published
+            reply — placeholder doctor cards are not shown here.
+          </p>
+          <div style={{ textAlign: 'center' }}>
+            <Link to={`/forum/${DEFAULT_FORUM_SLUG}`}>
+              Browse doctor answers <FaArrowRight />
+            </Link>
           </div>
         </div>
       </Reveal>

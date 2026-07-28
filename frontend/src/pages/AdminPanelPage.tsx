@@ -16,6 +16,7 @@ import {
   FaXmark,
 } from 'react-icons/fa6';
 import { AdminDashboardCharts } from '../components/admin/AdminDashboardCharts';
+import { AdminSeoWorkspace } from '../components/admin/AdminSeoWorkspace';
 import { Seo } from '../components/Seo';
 import { useAuthModal } from '../context/AuthModalContext';
 import { useSession } from '../context/SessionContext';
@@ -146,35 +147,6 @@ type DoctorAnalyticsDetail = {
   }>;
 };
 
-type SeoPage = {
-  slug: string;
-  title: string;
-  metaDescription: string | null;
-  robots: string | null;
-};
-
-type QuestionSeoRow = {
-  questionId: string;
-  forumSlug: string | null;
-  category: string;
-  categorySlug: string | null;
-  questionPreview: string;
-  answerCount: number;
-  doctorName: string | null;
-  publicPath: string | null;
-  publicUrl: string | null;
-  inSitemap: boolean;
-  autoTitle: string;
-  autoDescription: string;
-  seo: {
-    title: string;
-    metaDescription: string | null;
-    robots: string;
-    updatedAt: string | null;
-    isCustom: boolean;
-  };
-};
-
 type AdminView = 'overview' | 'qa' | 'seo';
 
 function statusBadgeClass(status: string): string {
@@ -300,15 +272,6 @@ export default function AdminPanelPage() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [doctorDetail, setDoctorDetail] = useState<DoctorAnalyticsDetail | null>(null);
   const [doctorDetailLoading, setDoctorDetailLoading] = useState(false);
-  const [seoHome, setSeoHome] = useState<SeoPage | null>(null);
-  const [seoTitle, setSeoTitle] = useState('');
-  const [seoDescription, setSeoDescription] = useState('');
-  const [questionSeoRows, setQuestionSeoRows] = useState<QuestionSeoRow[]>([]);
-  const [editingSeoId, setEditingSeoId] = useState<string | null>(null);
-  const [editSeoTitle, setEditSeoTitle] = useState('');
-  const [editSeoDescription, setEditSeoDescription] = useState('');
-  const [editSeoRobots, setEditSeoRobots] = useState('index,follow');
-  const [seoSaving, setSeoSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [qaCategoryFilter, setQaCategoryFilter] = useState('');
   const [patientReportCategoryFilter, setPatientReportCategoryFilter] = useState('');
@@ -317,24 +280,18 @@ export default function AdminPanelPage() {
     if (!token) return;
     const questionsParams = new URLSearchParams({ limit: '100' });
     if (qaCategoryFilter.trim()) questionsParams.set('category', qaCategoryFilter.trim());
-    const [dash, q, d, s, dr, pr, qSeo] = await Promise.all([
+    const [dash, q, d, dr, pr] = await Promise.all([
       apiRequest<AdminDashboard>('/admin/dashboard', {}, token),
       apiRequest<AdminQuestion[]>(`/admin/questions?${questionsParams.toString()}`, {}, token),
       apiRequest<Doctor[]>('/admin/doctors', {}, token),
-      apiRequest<SeoPage | null>('/admin/seo/pages/home', {}, token),
       apiRequest<DoctorAnalytics[]>('/admin/reports/doctors', {}, token),
       apiRequest<PatientAnalytics[]>('/admin/reports/patients', {}, token),
-      apiRequest<QuestionSeoRow[]>('/admin/seo/questions', {}, token).catch(() => [] as QuestionSeoRow[]),
     ]);
     setDashboard(dash);
     setQuestions(q);
     setDoctors(d);
     setDoctorReports(dr);
     setPatientReports(pr);
-    setQuestionSeoRows(qSeo);
-    setSeoHome(s);
-    setSeoTitle(s?.title ?? 'Home');
-    setSeoDescription(s?.metaDescription ?? '');
   }, [token, qaCategoryFilter]);
 
   useEffect(() => {
@@ -415,44 +372,6 @@ export default function AdminPanelPage() {
       await loadAll();
     } catch (err) {
       setError(err instanceof Error ? err.message : `Could not ${action} user.`);
-    }
-  }
-
-  async function saveSeo() {
-    if (!token) return;
-    await apiRequest('/admin/seo/pages/home', {
-      method: 'PUT',
-      body: JSON.stringify({ pageType: 'home', title: seoTitle, metaDescription: seoDescription, robots: 'index,follow' }),
-    }, token);
-    await loadAll();
-  }
-
-  function startEditQuestionSeo(row: QuestionSeoRow) {
-    setEditingSeoId(row.questionId);
-    setEditSeoTitle(row.seo.title);
-    setEditSeoDescription(row.seo.metaDescription ?? '');
-    setEditSeoRobots(row.seo.robots || 'index,follow');
-  }
-
-  async function saveQuestionSeo(questionId: string) {
-    if (!token) return;
-    setSeoSaving(true);
-    try {
-      setError(null);
-      await apiRequest(`/admin/seo/questions/${questionId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          title: editSeoTitle.trim(),
-          metaDescription: editSeoDescription.trim(),
-          robots: editSeoRobots.trim() || 'index,follow',
-        }),
-      }, token);
-      setEditingSeoId(null);
-      await loadAll();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save Q&A SEO.');
-    } finally {
-      setSeoSaving(false);
     }
   }
 
@@ -693,7 +612,7 @@ export default function AdminPanelPage() {
             <h1>
               {activeView === 'overview' && 'Dashboard'}
               {activeView === 'qa' && 'Q&A monitoring'}
-              {activeView === 'seo' && 'SEO controls'}
+              {activeView === 'seo' && 'SEO workspace'}
             </h1>
             <p className="admin-topbar-sub">Signed in as {user?.name ?? user?.email ?? 'Admin'}</p>
           </div>
@@ -1377,175 +1296,9 @@ export default function AdminPanelPage() {
             </section>
           )}
 
-          {activeView === 'seo' && (
-            <>
-              <section className="admin-panel admin-panel--seo">
-                <h2 className="admin-panel-title">Homepage SEO</h2>
-                <p className="admin-panel-lead">WordPress-style meta for the main landing page.</p>
-                <label className="admin-field">
-                  <span className="admin-field-label">Meta title</span>
-                  <input
-                    className="admin-input"
-                    value={seoTitle}
-                    onChange={(e) => setSeoTitle(e.target.value)}
-                  />
-                </label>
-                <label className="admin-field">
-                  <span className="admin-field-label">Meta description</span>
-                  <textarea
-                    className="admin-textarea"
-                    value={seoDescription}
-                    onChange={(e) => setSeoDescription(e.target.value)}
-                    rows={5}
-                  />
-                </label>
-                <div className="admin-seo-actions">
-                  <button type="button" className="admin-btn-primary" onClick={() => saveSeo().catch(() => undefined)}>
-                    Save changes
-                  </button>
-                  {seoHome ? (
-                    <span className="admin-seo-meta">Slug: {seoHome.slug}</span>
-                  ) : null}
-                </div>
-              </section>
-
-              <section className="admin-panel">
-                <h2 className="admin-panel-title">Q&amp;A / answer page SEO</h2>
-                <p className="admin-panel-lead">
-                  Every published doctor answer has an indexable question page. Edit title and meta description here —
-                  leave blank fields as auto-generated from the answer content, or customize for search.
-                </p>
-                <p className="admin-panel-lead">
-                  Live sitemap:{' '}
-                  <a href="https://madhavbaug.onrender.com/public/forum/sitemap.xml" target="_blank" rel="noreferrer">
-                    API sitemap.xml
-                  </a>
-                </p>
-                <div className="admin-table-wrap">
-                  <table className="admin-table admin-table--analytics">
-                    <thead>
-                      <tr>
-                        <th>Question / answer</th>
-                        <th>Public URL</th>
-                        <th>SEO title</th>
-                        <th>Meta description</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {questionSeoRows.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="admin-table-empty">
-                            No published doctor answers yet. Once a doctor publishes an answer, the Q&amp;A page appears
-                            here for SEO editing.
-                          </td>
-                        </tr>
-                      ) : (
-                        questionSeoRows.map((row) => {
-                          const isEditing = editingSeoId === row.questionId;
-                          return (
-                            <tr key={row.questionId}>
-                              <td>
-                                <div className="admin-td-strong">{row.questionPreview}</div>
-                                <div className="admin-td-muted">
-                                  {row.category}
-                                  {row.doctorName ? ` · ${row.doctorName}` : ''}
-                                  {` · ${row.answerCount} answer${row.answerCount === 1 ? '' : 's'}`}
-                                </div>
-                              </td>
-                              <td className="admin-td-muted">
-                                {row.publicUrl ? (
-                                  <a href={row.publicUrl} target="_blank" rel="noreferrer">
-                                    Open page
-                                  </a>
-                                ) : (
-                                  '—'
-                                )}
-                                <div>{row.inSitemap ? 'In sitemap' : 'Not in sitemap'}</div>
-                              </td>
-                              <td>
-                                {isEditing ? (
-                                  <input
-                                    className="admin-input"
-                                    value={editSeoTitle}
-                                    onChange={(e) => setEditSeoTitle(e.target.value)}
-                                    maxLength={180}
-                                  />
-                                ) : (
-                                  <span className="admin-td-muted">{row.seo.title}</span>
-                                )}
-                              </td>
-                              <td>
-                                {isEditing ? (
-                                  <textarea
-                                    className="admin-textarea"
-                                    value={editSeoDescription}
-                                    onChange={(e) => setEditSeoDescription(e.target.value)}
-                                    rows={3}
-                                    maxLength={320}
-                                  />
-                                ) : (
-                                  <span className="admin-td-muted">{row.seo.metaDescription ?? '—'}</span>
-                                )}
-                              </td>
-                              <td>
-                                {isEditing ? (
-                                  <select
-                                    className="admin-select"
-                                    value={editSeoRobots}
-                                    onChange={(e) => setEditSeoRobots(e.target.value)}
-                                  >
-                                    <option value="index,follow">Index</option>
-                                    <option value="noindex,follow">Noindex</option>
-                                  </select>
-                                ) : (
-                                  <>
-                                    <div>{row.seo.isCustom ? 'Custom' : 'Auto'}</div>
-                                    <div className="admin-td-muted">{row.seo.robots}</div>
-                                  </>
-                                )}
-                              </td>
-                              <td>
-                                {isEditing ? (
-                                  <div className="admin-export-actions">
-                                    <button
-                                      type="button"
-                                      className="admin-btn-primary"
-                                      disabled={seoSaving}
-                                      onClick={() => saveQuestionSeo(row.questionId).catch(() => undefined)}
-                                    >
-                                      {seoSaving ? 'Saving…' : 'Save'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="admin-btn-secondary"
-                                      disabled={seoSaving}
-                                      onClick={() => setEditingSeoId(null)}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className="admin-btn-secondary"
-                                    onClick={() => startEditQuestionSeo(row)}
-                                  >
-                                    Edit SEO
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </>
-          )}
+          {activeView === 'seo' && token ? (
+            <AdminSeoWorkspace token={token} onError={setError} />
+          ) : null}
         </div>
       </div>
     </main>

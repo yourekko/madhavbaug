@@ -99,6 +99,11 @@ export type ForumDetailResponse = {
     title: string;
     metaDescription: string | null;
     robots: string;
+    focusKeyword?: string | null;
+    keywords?: string | null;
+    ogTitle?: string | null;
+    ogDescription?: string | null;
+    internalLinks?: string[];
     isCustom: boolean;
   } | null;
   answers: ForumAnswerBlock[];

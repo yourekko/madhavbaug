@@ -12,15 +12,16 @@ import {
   FaPhone,
   FaCircleInfo,
   FaShieldHalved,
-  FaStar,
   FaVideo,
 } from 'react-icons/fa6';
 import { Seo } from '../components/Seo';
 import { Reveal } from '../components/Reveal';
+import { useAuthModal } from '../context/AuthModalContext';
 import { useSession } from '../context/SessionContext';
 import { useToast } from '../context/ToastContext';
 import { extractQuestionTitle } from '../lib/questionSlug';
 import { apiRequest } from '../lib/api';
+import { fetchPublicPageSeo, type PublicPageSeo } from '../lib/publicSeoApi';
 import { seoPublicPath } from '../seo/seoPaths';
 import { QUESTION_CATEGORY_OPTIONS, QUESTION_CATEGORY_PLACEHOLDER } from '../constants/questionCategories';
 import '../AskQuestion.css';
@@ -29,12 +30,6 @@ const categories = [QUESTION_CATEGORY_PLACEHOLDER, ...QUESTION_CATEGORY_OPTIONS]
 
 const ageGroups = ['Select age group', '18–30', '31–45', '46–60', '60+'];
 const genders = ['Select gender', 'Female', 'Male', 'Prefer not to say'];
-
-const sidebarDoctors = [
-  { name: 'Dr. Rajesh Kumar', role: 'Cardiologist', years: 15, avatarClass: 'd1' },
-  { name: 'Dr. Priya Sharma', role: 'Diabetes Specialist', years: 12, avatarClass: 'd2' },
-  { name: 'Dr. Amit Verma', role: 'General Physician', years: 10, avatarClass: 'd3' },
-];
 
 const popularTopics = [
   'Diabetes',
@@ -78,13 +73,37 @@ export default function AskQuestionPage() {
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pageSeo, setPageSeo] = useState<PublicPageSeo | null>(null);
   const { isAuthenticated, token } = useSession();
+  const { openAuth } = useAuthModal();
   const toast = useToast();
+
+  useEffect(() => {
+    let alive = true;
+    fetchPublicPageSeo('ask').then((seo) => {
+      if (alive) setPageSeo(seo);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const st = location.state as AskLocationState | null;
     const draft = st?.draftQuestion?.trim();
-    if (draft) setQuestion(draft.slice(0, MAX_Q));
+    if (draft) {
+      setQuestion(draft.slice(0, MAX_Q));
+      return;
+    }
+    try {
+      const saved = sessionStorage.getItem('madhav_ask_draft')?.trim();
+      if (saved) {
+        setQuestion(saved.slice(0, MAX_Q));
+        sessionStorage.removeItem('madhav_ask_draft');
+      }
+    } catch {
+      /* ignore */
+    }
   }, [location.state]);
 
   const qLen = question.length;
@@ -95,9 +114,20 @@ export default function AskQuestionPage() {
     e.preventDefault();
     if (!canSubmit) return;
     if (!isAuthenticated || !token) {
-      const msg = 'Please sign in first to submit your question.';
-      toast.info(msg);
-      setSubmitError(msg);
+      try {
+        sessionStorage.setItem('madhav_ask_draft', question.trim().slice(0, MAX_Q));
+      } catch {
+        /* ignore */
+      }
+      toast.info('Sign in to submit your question — your draft is saved.');
+      setSubmitError(null);
+      openAuth({
+        defaultTab: 'signup',
+        variant: 'ask',
+        onSuccess: () => {
+          toast.success('You’re signed in. Submit your question when ready.');
+        },
+      });
       return;
     }
     setSubmitError(null);
@@ -136,10 +166,19 @@ export default function AskQuestionPage() {
   return (
     <div className="ask-page">
       <Seo
-        title="Ask a Doctor"
-        description="Submit your health question for a doctor-reviewed answer. Confidential, structured form with category and history fields."
+        title={pageSeo?.title || 'Ask a Doctor'}
+        description={
+          pageSeo?.metaDescription ||
+          'Submit your health question for a doctor-reviewed answer. Confidential, structured form with category and history fields.'
+        }
         canonicalPath={seoPublicPath('/forum/ask')}
-        keywords="ask doctor online, submit health question, free medical advice India, Madhavbaug forum"
+        keywords={
+          pageSeo?.keywords ||
+          'ask doctor online, submit health question, free medical advice India, Madhavbaug forum'
+        }
+        ogTitle={pageSeo?.ogTitle || undefined}
+        ogDescription={pageSeo?.ogDescription || undefined}
+        robots={pageSeo?.robots}
       />
       <Reveal as="div" className="ask-hero-wrap">
         <main className="ask-main">
@@ -260,22 +299,12 @@ export default function AskQuestionPage() {
             <aside className="ask-sidebars" aria-label="Helpful information">
               <div className="ask-side-card ask-side-doctors">
                 <h2 className="ask-side-title">Verified Doctors</h2>
-                <ul className="ask-doctor-list">
-                  {sidebarDoctors.map((d) => (
-                    <li key={d.name}>
-                      <span className={`ask-doc-avatar ${d.avatarClass}`} />
-                      <div>
-                        <strong>{d.name}</strong>
-                        <span className="ask-doc-role">{d.role}</span>
-                        <span className="ask-doc-exp">
-                          <FaStar className="ask-star" aria-hidden /> {d.years} years exp
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <p className="ask-side-copy">
+                  Licensed Madhavbaug clinicians review questions in diabetes, heart health, blood pressure, metabolic
+                  health, and lifestyle disorders. Answers are published only after doctor review.
+                </p>
                 <div className="ask-verified-banner">
-                  <FaCircleCheck aria-hidden /> All Doctors Verified
+                  <FaCircleCheck aria-hidden /> Doctor-reviewed replies
                 </div>
               </div>
 

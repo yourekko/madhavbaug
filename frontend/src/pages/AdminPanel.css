@@ -1265,3 +1265,48 @@
     display: none;
   }
 }
+
+.admin-seo-edit-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+
+/* SEO workspace */
+.admin-seo-workspace { display: flex; flex-direction: column; gap: 16px; }
+.admin-seo-workspace-head { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-start; }
+.admin-seo-tabs { display: flex; gap: 8px; }
+.admin-seo-tab { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 600; color: #334155; }
+.admin-seo-tab.is-active { background: #0f766e; border-color: #0f766e; color: #fff; }
+.admin-seo-layout { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 960px) { .admin-seo-layout { grid-template-columns: 1fr; } }
+.admin-seo-list { max-height: min(70vh, 820px); overflow: auto; }
+.admin-seo-list-tools { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.admin-seo-nav { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.admin-seo-nav-item { width: 100%; text-align: left; border: 1px solid #e2e8f0; background: #fff; border-radius: 10px; padding: 10px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.admin-seo-nav-item strong { font-size: 13px; color: #0f172a; line-height: 1.35; }
+.admin-seo-nav-item span { font-size: 11px; color: #64748b; }
+.admin-seo-nav-item.is-active { border-color: #0f766e; background: #f0fdfa; }
+.admin-seo-editor-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+.admin-seo-score { min-width: 72px; text-align: center; border-radius: 12px; padding: 8px 10px; background: #f1f5f9; }
+.admin-seo-score strong { display: block; font-size: 22px; line-height: 1; }
+.admin-seo-score span { font-size: 11px; color: #64748b; }
+.admin-seo-score--good { background: #dcfce7; }
+.admin-seo-score--mid { background: #fef9c3; }
+.admin-seo-score--low { background: #fee2e2; }
+.admin-serp-preview { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.admin-serp-url { color: #188038; font-size: 12px; margin-bottom: 4px; word-break: break-all; }
+.admin-serp-title { color: #1a0dab; font-size: 18px; line-height: 1.3; margin-bottom: 4px; }
+.admin-serp-desc { color: #4d5156; font-size: 13px; line-height: 1.45; }
+.admin-seo-checklist { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.admin-seo-check { font-size: 12px; color: #94a3b8; background: #f8fafc; border-radius: 999px; padding: 4px 10px; }
+.admin-seo-check.is-ok { color: #166534; background: #dcfce7; }
+.admin-seo-fields { display: flex; flex-direction: column; gap: 12px; }
+.admin-seo-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 720px) { .admin-seo-grid-2 { grid-template-columns: 1fr; } }
+.admin-char-hint { font-style: normal; font-weight: 600; float: right; font-size: 12px; color: #64748b; }
+.admin-char-hint--good { color: #166534; }
+.admin-char-hint--short, .admin-char-hint--long { color: #a16207; }
+.admin-char-hint--over { color: #b91c1c; }
+.admin-seo-edit-stack { display: flex; flex-direction: column; gap: 8px; min-width: 220px; }

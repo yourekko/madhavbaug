@@ -78,6 +78,17 @@ export declare class ForumPublicController {
         createdAt: Date;
         viewCount: number;
         patientAnonId: string;
+        seo: {
+            title: string;
+            metaDescription: string | null;
+            robots: string;
+            focusKeyword: string | null;
+            keywords: string | null;
+            ogTitle: string | null;
+            ogDescription: string | null;
+            internalLinks: string[];
+            isCustom: boolean;
+        } | null;
         answers: {
             id: string;
             answerHtml: string;

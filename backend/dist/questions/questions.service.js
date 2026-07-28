@@ -27,6 +27,7 @@ const question_followup_entity_1 = require("../entities/question-followup.entity
 const question_entity_1 = require("../entities/question.entity");
 const user_entity_1 = require("../entities/user.entity");
 const users_service_1 = require("../users/users.service");
+const seo_service_1 = require("../seo/seo.service");
 const normalize_upload_url_1 = require("../common/utils/normalize-upload-url");
 const slugify_1 = require("../common/utils/slugify");
 const create_question_dto_1 = require("./dto/create-question.dto");
@@ -44,7 +45,8 @@ let QuestionsService = class QuestionsService {
     usersRepo;
     auditRepo;
     usersService;
-    constructor(questionRepo, followupRepo, answerRepo, assignmentRepo, usersRepo, auditRepo, usersService) {
+    seoService;
+    constructor(questionRepo, followupRepo, answerRepo, assignmentRepo, usersRepo, auditRepo, usersService, seoService) {
         this.questionRepo = questionRepo;
         this.followupRepo = followupRepo;
         this.answerRepo = answerRepo;
@@ -52,6 +54,7 @@ let QuestionsService = class QuestionsService {
         this.usersRepo = usersRepo;
         this.auditRepo = auditRepo;
         this.usersService = usersService;
+        this.seoService = seoService;
     }
     isMysqlDuplicateKeyError(err) {
         const any = err;
@@ -185,6 +188,16 @@ let QuestionsService = class QuestionsService {
     }
     async onModuleInit() {
         await this.backfillForumSlugs();
+        await this.healAnsweredQuestionStatus();
+    }
+    async healAnsweredQuestionStatus() {
+        await this.questionRepo
+            .createQueryBuilder()
+            .update(question_entity_1.Question)
+            .set({ status: question_status_enum_1.QuestionStatus.ANSWERED })
+            .where('status != :answered', { answered: question_status_enum_1.QuestionStatus.ANSWERED })
+            .andWhere(`EXISTS (SELECT 1 FROM answers a WHERE a.question_id = questions.id AND a.is_published = 1)`)
+            .execute();
     }
     async backfillForumSlugs() {
         const missing = await this.questionRepo.find({
@@ -456,7 +469,7 @@ let QuestionsService = class QuestionsService {
             .leftJoinAndSelect('q.answers', 'answers')
             .leftJoinAndSelect('q.assignments', 'assignments')
             .leftJoinAndSelect('q.patientUser', 'patient')
-            .orderBy('q.created_at', 'DESC')
+            .orderBy('q.createdAt', 'DESC')
             .skip((page - 1) * limit)
             .take(limit);
         if (status)
@@ -723,6 +736,7 @@ let QuestionsService = class QuestionsService {
                 doctorName: doctor.name,
                 email: doctor.email,
                 phone: doctor.phone,
+                isActive: doctor.isActive,
                 whatsappNumber: doctor.doctorProfile?.whatsappNumber ?? null,
                 branchName: doctor.doctorProfile?.branchName ?? null,
                 profileLink: doctor.doctorProfile?.profileLink ?? null,
@@ -937,8 +951,7 @@ let QuestionsService = class QuestionsService {
     async getPublicHomeFeed() {
         const answeredRows = await this.questionRepo
             .createQueryBuilder('q')
-            .where('q.status = :st', { st: question_status_enum_1.QuestionStatus.ANSWERED })
-            .andWhere('q.forum_slug IS NOT NULL')
+            .where('q.forum_slug IS NOT NULL')
             .andWhere(`EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`)
             .orderBy('q.created_at', 'DESC')
             .take(24)
@@ -1063,12 +1076,13 @@ let QuestionsService = class QuestionsService {
             const answered = await this.questionRepo
                 .createQueryBuilder('q')
                 .where('q.category IN (:...cats)', { cats })
-                .andWhere('q.status = :st', { st: question_status_enum_1.QuestionStatus.ANSWERED })
+                .andWhere('q.forum_slug IS NOT NULL')
                 .andWhere(`EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`)
                 .getCount();
             const open = await this.questionRepo
                 .createQueryBuilder('q')
                 .where('q.category IN (:...cats)', { cats })
+                .andWhere('q.forum_slug IS NOT NULL')
                 .andWhere('q.status IN (:...ost)', {
                 ost: [question_status_enum_1.QuestionStatus.OPEN, question_status_enum_1.QuestionStatus.ASSIGNED],
             })
@@ -1097,7 +1111,6 @@ let QuestionsService = class QuestionsService {
             qb.andWhere(`NOT EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`);
         }
         else {
-            qb.andWhere('q.status = :ans', { ans: question_status_enum_1.QuestionStatus.ANSWERED });
             qb.andWhere(`EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`);
         }
         if (sort === 'views') {
@@ -1168,7 +1181,6 @@ let QuestionsService = class QuestionsService {
             .where('q.category IN (:...cats)', { cats })
             .andWhere('q.id != :id', { id: question.id })
             .andWhere('q.forum_slug IS NOT NULL')
-            .andWhere('q.status = :st', { st: question_status_enum_1.QuestionStatus.ANSWERED })
             .andWhere(`EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`)
             .orderBy('q.created_at', 'DESC')
             .take(6)
@@ -1187,6 +1199,7 @@ let QuestionsService = class QuestionsService {
             answerCount: relCount.get(rq.id) ?? 1,
             viewCount: rq.viewCount ?? 0,
         }));
+        const seoOverride = await this.seoService.getQuestionSeoOverride(question.id);
         return {
             slug: question.forumSlug,
             title: question.title,
@@ -1195,6 +1208,32 @@ let QuestionsService = class QuestionsService {
             createdAt: question.createdAt,
             viewCount,
             patientAnonId: `MB-${question.id.replace(/-/g, '').slice(0, 4).toUpperCase()}`,
+            seo: seoOverride
+                ? {
+                    title: seoOverride.title,
+                    metaDescription: seoOverride.metaDescription,
+                    robots: seoOverride.robots ?? 'index,follow',
+                    focusKeyword: seoOverride.focusKeyword ?? null,
+                    keywords: seoOverride.keywords ?? null,
+                    ogTitle: seoOverride.ogTitle ?? null,
+                    ogDescription: seoOverride.ogDescription ?? null,
+                    internalLinks: (() => {
+                        try {
+                            const raw = seoOverride.internalLinks;
+                            if (!raw?.trim())
+                                return [];
+                            const parsed = JSON.parse(raw);
+                            return Array.isArray(parsed)
+                                ? parsed.filter((x) => typeof x === 'string' && x.startsWith('/forum/'))
+                                : [];
+                        }
+                        catch {
+                            return [];
+                        }
+                    })(),
+                    isCustom: true,
+                }
+                : null,
             answers: answers.map((a) => {
                 const doc = doctorById.get(a.doctorUserId);
                 const profile = doc?.doctorProfile;
@@ -1260,7 +1299,6 @@ let QuestionsService = class QuestionsService {
         const published = await this.questionRepo
             .createQueryBuilder('q')
             .where('q.forum_slug IS NOT NULL')
-            .andWhere('q.status = :st', { st: question_status_enum_1.QuestionStatus.ANSWERED })
             .andWhere(`EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND a.is_published = 1)`)
             .orderBy('q.updated_at', 'DESC')
             .getMany();
@@ -1316,6 +1354,7 @@ exports.QuestionsService = QuestionsService = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        users_service_1.UsersService])
+        users_service_1.UsersService,
+        seo_service_1.SeoService])
 ], QuestionsService);
 //# sourceMappingURL=questions.service.js.map

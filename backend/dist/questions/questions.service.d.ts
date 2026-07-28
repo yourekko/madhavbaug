@@ -10,6 +10,7 @@ import { QuestionFollowup } from '../entities/question-followup.entity';
 import { Question } from '../entities/question.entity';
 import { User } from '../entities/user.entity';
 import { UsersService } from '../users/users.service';
+import { SeoService } from '../seo/seo.service';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { CreateFollowupDto } from './dto/create-followup.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
@@ -21,7 +22,8 @@ export declare class QuestionsService implements OnModuleInit {
     private readonly usersRepo;
     private readonly auditRepo;
     private readonly usersService;
-    constructor(questionRepo: Repository<Question>, followupRepo: Repository<QuestionFollowup>, answerRepo: Repository<Answer>, assignmentRepo: Repository<QuestionAssignment>, usersRepo: Repository<User>, auditRepo: Repository<AuditLog>, usersService: UsersService);
+    private readonly seoService;
+    constructor(questionRepo: Repository<Question>, followupRepo: Repository<QuestionFollowup>, answerRepo: Repository<Answer>, assignmentRepo: Repository<QuestionAssignment>, usersRepo: Repository<User>, auditRepo: Repository<AuditLog>, usersService: UsersService, seoService: SeoService);
     private isMysqlDuplicateKeyError;
     private forumViewerKeyFromRequest;
     private recordPublicForumQuestionViewIfNew;
@@ -31,6 +33,7 @@ export declare class QuestionsService implements OnModuleInit {
     private questionMatchesDoctorExpertise;
     private doctorMayAccessQuestion;
     onModuleInit(): Promise<void>;
+    private healAnsweredQuestionStatus;
     private backfillForumSlugs;
     private findQuestionByPublicSlug;
     createQuestion(patientUserId: string, dto: CreateQuestionDto): Promise<Question>;
@@ -167,6 +170,7 @@ export declare class QuestionsService implements OnModuleInit {
         doctorName: string;
         email: string | null;
         phone: string | null;
+        isActive: boolean;
         whatsappNumber: string | null;
         branchName: string | null;
         profileLink: string | null;
@@ -314,6 +318,17 @@ export declare class QuestionsService implements OnModuleInit {
         createdAt: Date;
         viewCount: number;
         patientAnonId: string;
+        seo: {
+            title: string;
+            metaDescription: string | null;
+            robots: string;
+            focusKeyword: string | null;
+            keywords: string | null;
+            ogTitle: string | null;
+            ogDescription: string | null;
+            internalLinks: string[];
+            isCustom: boolean;
+        } | null;
         answers: {
             id: string;
             answerHtml: string;
